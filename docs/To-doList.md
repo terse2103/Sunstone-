@@ -1,7 +1,7 @@
 # PlacementIQ — Implementation Tracker
 
-**Overall Progress: 12%** (7 of 59 tasks)
-**Last updated:** 2026-05-19
+**Overall Progress: 22%** (13 of 59 tasks)
+**Last updated:** 2026-05-20
 
 Update protocol: see [`Rules.md`](./Rules.md). Mark `[x]` immediately on completion, update the overall and per-phase percentages, and bump the "Last updated" date.
 
@@ -21,14 +21,14 @@ Update protocol: see [`Rules.md`](./Rules.md). Mark `[x]` immediately on complet
 
 ---
 
-## Phase 1 — Backend Foundations — 0% (0 of 6)
+## Phase 1 — Backend Foundations — 100% (6 of 6)
 
-- [ ] Pydantic models (Student, Assessment, ReadinessResult, DimensionScore, Gap, AtRiskAssessment, InterventionBrief, TrackBenchmark, EvalResult)
-- [ ] data/benchmarks.json — 3 tracks (BFSI, Analytics, Digital Marketing) with weights, sub-skills, jd_frequency
-- [ ] data/students.json — ~12 synthetic students (4 on-track / 4 borderline / 4 at-risk, spread across tracks)
-- [ ] data/seed.py — JSON loader with boot validation (schema, weight sums, track refs)
-- [ ] core/benchmarks.py — get_track()
-- [ ] Unit tests for benchmark loading + seed validation
+- [x] Pydantic models (Student, Assessment, ReadinessResult, DimensionScore, Gap, AtRiskAssessment, InterventionBrief, TrackBenchmark, EvalResult)
+- [x] data/benchmarks.json — 3 tracks (BFSI, Analytics, Digital Marketing) with weights, sub-skills, jd_frequency
+- [x] data/students.json — ~12 synthetic students (4 on-track / 4 borderline / 4 at-risk, spread across tracks)
+- [x] data/seed.py — JSON loader with boot validation (schema, weight sums, track refs)
+- [x] core/benchmarks.py — get_track()
+- [x] Unit tests for benchmark loading + seed validation
 
 ---
 

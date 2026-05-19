@@ -1,0 +1,65 @@
+{
+  "BFSI": {
+    "weights": { "E": 0.20, "L": 0.20, "Q": 0.30, "D": 0.30 },
+    "subskills": {
+      "business_communication":  { "dimension": "E", "benchmark": 70 },
+      "presentation":            { "dimension": "E", "benchmark": 65 },
+      "logical_reasoning":       { "dimension": "L", "benchmark": 75 },
+      "case_analysis":           { "dimension": "L", "benchmark": 70 },
+      "quant_aptitude":          { "dimension": "Q", "benchmark": 80 },
+      "financial_math":          { "dimension": "Q", "benchmark": 78 },
+      "banking_fundamentals":    { "dimension": "D", "benchmark": 75 },
+      "accounting_basics":       { "dimension": "D", "benchmark": 72 },
+      "regulatory_awareness":    { "dimension": "D", "benchmark": 65 },
+      "customer_relationship":   { "dimension": "D", "benchmark": 70 }
+    },
+    "jd_frequency": {
+      "banking_fundamentals": 0.78,
+      "financial_math": 0.71,
+      "business_communication": 0.66,
+      "accounting_basics": 0.58
+    }
+  },
+
+  "Analytics": {
+    "weights": { "E": 0.15, "L": 0.20, "Q": 0.35, "D": 0.30 },
+    "subskills": {
+      "business_communication":  { "dimension": "E", "benchmark": 70 },
+      "presentation":            { "dimension": "E", "benchmark": 65 },
+      "logical_reasoning":       { "dimension": "L", "benchmark": 75 },
+      "data_interpretation":     { "dimension": "Q", "benchmark": 85 },
+      "quant_aptitude":          { "dimension": "Q", "benchmark": 75 },
+      "sql_basics":              { "dimension": "D", "benchmark": 80 },
+      "stats_fundamentals":      { "dimension": "D", "benchmark": 75 },
+      "excel_modelling":         { "dimension": "D", "benchmark": 70 }
+    },
+    "jd_frequency": {
+      "data_interpretation": 0.73,
+      "sql_basics": 0.68,
+      "business_communication": 0.61,
+      "stats_fundamentals": 0.52
+    }
+  },
+
+  "Digital Marketing": {
+    "weights": { "E": 0.30, "L": 0.15, "Q": 0.20, "D": 0.35 },
+    "subskills": {
+      "copywriting":             { "dimension": "E", "benchmark": 80 },
+      "business_communication":  { "dimension": "E", "benchmark": 70 },
+      "presentation":            { "dimension": "E", "benchmark": 65 },
+      "campaign_analytics":      { "dimension": "L", "benchmark": 70 },
+      "roi_calculation":         { "dimension": "Q", "benchmark": 72 },
+      "data_interpretation":     { "dimension": "Q", "benchmark": 68 },
+      "seo_fundamentals":        { "dimension": "D", "benchmark": 75 },
+      "social_media_strategy":   { "dimension": "D", "benchmark": 78 },
+      "paid_ads":                { "dimension": "D", "benchmark": 70 },
+      "content_strategy":        { "dimension": "D", "benchmark": 72 }
+    },
+    "jd_frequency": {
+      "social_media_strategy": 0.76,
+      "copywriting": 0.69,
+      "paid_ads": 0.63,
+      "seo_fundamentals": 0.58
+    }
+  }
+}
