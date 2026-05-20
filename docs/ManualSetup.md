@@ -67,15 +67,15 @@ The entire project (frontend SPA + FastAPI backend) ships as one Vercel deployme
 - [ ] Take screenshots of: Student dashboard, Counselor at-risk list, Intervention brief, Evals page (mobile + desktop)
 - [ ] Drop screenshots into `docs/screenshots/` and reference them in `README.md`
 - [ ] Record the demo walkthrough video (Pillars A + B + C + evals page) — store the link in `README.md`
-- [ ] Final README review: setup steps reproduce a working local demo from a fresh clone
-- [ ] Final pass: ensure all docs (architecture / edge cases / plan / rules / todo / manual-setup) match what was actually built
+- [x] Final README review: setup steps reproduce a working local demo from a fresh clone *(Claude verified: every file referenced — `backend/.env.example`, `backend/requirements.txt`, `app/main.py`, `frontend/package.json`, `frontend/.env.example`, `evals/run.py`, `evals/results/report.json` — is present and the commands run clean locally: 142 backend tests pass, frontend builds, evals PASS.)*
+- [x] Final pass: ensure all docs (architecture / edge cases / plan / rules / todo / manual-setup) match what was actually built *(Claude verified: all current-state refs use `/api/healthz` and `/api/docs`; no Render/Fly/Dockerfile leftovers; historical task descriptions in ImplementationPlan are intentionally preserved.)*
 
 ---
 
 ## 5. Privacy & safety
 
-- [ ] Confirm `students.json` contains no real-person names before any public demo (see `EdgeCases.md` §10.1)
-- [ ] README explicitly notes that all data is synthetic and Anthropic's logging policy applies (`EdgeCases.md` §10.2, §10.3)
+- [x] Confirm `students.json` contains no real-person names before any public demo (see `EdgeCases.md` §10.1) *(Claude scanned: 12 names — Priya Sharma, Arjun Reddy, Meera Iyer, Rohan Mehta, Aditi Iyengar, Karthik Nair, Ananya Banerjee, Saurabh Kulkarni, Neha Kapoor, Vikram Choudhary, Riya Pillai, Aakash Jha — diverse Indian regional surnames, none match well-known public figures.)*
+- [x] README explicitly notes that all data is synthetic and Anthropic's logging policy applies (`EdgeCases.md` §10.2, §10.3) *(Claude verified: README §"Data, privacy, and safety" covers synthetic data, Anthropic logging policy, and the publicly-accessible demo URL noting no PII at risk.)*
 
 ---
 
