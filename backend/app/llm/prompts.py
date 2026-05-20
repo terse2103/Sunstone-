@@ -30,19 +30,33 @@ GAP_RATIONALE_SYSTEM = (
 
 
 READINESS_NARRATIVE_SYSTEM = (
-    "You write short readiness-summary narratives for a placement dashboard. "
-    "The student sees this directly above their numerical score.\n\n"
+    "You write the AI summary shown above the readiness score on a student's "
+    "placement dashboard. The summary uses ONLY plain language — no numbers, "
+    "no percentages, no scores, no dimension letter codes.\n\n"
+    "You receive pre-computed signals: the student's readiness band, the "
+    "ELQD dimensions where the student already exceeds the benchmark (if any), "
+    "and the dimensions that need work in priority order (most impact first).\n\n"
+    "Output one short paragraph, about 3–4 sentences, in this exact order:\n"
+    "1. State the readiness band in plain language — on track, borderline, "
+    "or at risk of falling short of placement — naming the track.\n"
+    "2. If 'exceeding_benchmark' is not '(none)': acknowledge the dimensions "
+    "where the student already exceeds the benchmark, using full names "
+    "(English, Logic, Quant, Domain). Skip this sentence entirely if the "
+    "list is '(none)'.\n"
+    "3. If 'priority_dimensions' is not '(none)': name the dimensions to "
+    "focus on in the priority order given. Frame this as a path of focus, "
+    "not as a list of weaknesses. Skip this sentence if no dimensions need "
+    "work.\n"
+    "4. End with an encouraging, concrete call to action — make clear that "
+    "steady, focused work on those priority areas brings a strong placement "
+    "within reach. If there are no priority dimensions, encourage the student "
+    "to sustain the depth they've built.\n\n"
     "Rules:\n"
-    "- 2 to 3 sentences. Plain text only — no markdown, no bullets, no quotes.\n"
-    "- Sentence 1: state the overall score band ('on track', 'borderline', or "
-    "'at risk') in plain language, citing the overall number.\n"
-    "- Sentence 2: name the student's strongest dimension by full name "
-    "(English / Logic / Quant / Domain) with its score.\n"
-    "- Sentence 3 (optional): name the weakest dimension and frame it as the "
-    "area with the most leverage.\n"
-    "- Address the student directly using 'you' — never their name.\n"
-    "- No greetings, no advice on what to do next (that lives in the gaps "
-    "section). Just describe the picture.\n\n"
+    "- NEVER include numbers, scores, benchmarks, or percentages. Not even "
+    "in word form (e.g. don't say 'eighty percent').\n"
+    "- Plain text only — no markdown, no bullets, no quotes, no emojis.\n"
+    "- Address the student as 'you'; never use their name.\n"
+    "- Keep the total length under ~80 words.\n\n"
     f"{INJECTION_GUARD}"
 )
 
@@ -94,23 +108,55 @@ _DIMENSION_LABELS = {"E": "English", "L": "Logic", "Q": "Quant", "D": "Domain"}
 def render_readiness_narrative(
     *,
     readiness: ReadinessResult,
-    student_name: str,
+    student_name: str,  # retained for cache-key stability and call symmetry
     track_name: str,
 ) -> str:
-    dim_lines = "\n".join(
-        f"  - {_DIMENSION_LABELS[ds.dimension]} ({ds.dimension}): "
-        f"score {ds.score:.0f}, benchmark {ds.benchmark:.0f}"
-        for ds in readiness.dimensions
+    """Pre-compute band + exceeding + priority dimensions and hand them to the LLM.
+
+    The classification and ranking is deterministic on purpose (Rules §Code/1):
+    we don't want the model deciding the band or guessing priority order from
+    raw numbers — that's the engine's job. The model only writes the prose.
+    Numbers are deliberately omitted from the payload too, since the system
+    prompt forbids them in the output and providing them would be a temptation.
+    """
+    del student_name  # never enters the prompt body; see system prompt rules
+
+    overall = readiness.overall
+    if overall >= 70:
+        band = "on track"
+    elif overall >= 55:
+        band = "borderline"
+    else:
+        band = "at risk of falling short of placement"
+
+    exceeding = sorted(
+        (d for d in readiness.dimensions if d.score >= d.benchmark),
+        key=lambda d: -(d.score - d.benchmark),  # largest surplus first
     )
+    below = sorted(
+        (d for d in readiness.dimensions if d.score < d.benchmark),
+        key=lambda d: -(d.benchmark - d.score),  # largest shortfall first
+    )
+
+    exceeding_str = (
+        ", ".join(_DIMENSION_LABELS[d.dimension] for d in exceeding)
+        if exceeding
+        else "(none)"
+    )
+    priority_str = (
+        ", ".join(_DIMENSION_LABELS[d.dimension] for d in below)
+        if below
+        else "(none)"
+    )
+
     return (
         "<student_data>\n"
-        f"  student_name: {student_name}\n"
         f"  track: {track_name}\n"
-        f"  overall_readiness: {readiness.overall:.1f}\n"
-        "  dimensions:\n"
-        f"{dim_lines}\n"
+        f"  readiness_band: {band}\n"
+        f"  exceeding_benchmark (strongest surplus first): {exceeding_str}\n"
+        f"  priority_dimensions (work on first): {priority_str}\n"
         "</student_data>\n\n"
-        "Write the 2-3 sentence narrative."
+        "Write the narrative."
     )
 
 

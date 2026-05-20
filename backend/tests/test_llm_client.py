@@ -320,12 +320,20 @@ def test_no_api_key_uses_deterministic_narrative_fallback() -> None:
     out = client.readiness_narrative(
         readiness=_readiness(overall=63.0), student_name="Priya", track_name="BFSI"
     )
-    # Fallback cites the overall + names the strongest + weakest dimensions.
-    assert "63" in out
+    # New format: structured (band → exceeding → priority → CTA), no numbers,
+    # no student name, and uses the full ELQD names.
+    assert _has_no_digits(out)
+    assert "Priya" not in out
     assert "BFSI" in out
-    assert "Quant" in out  # strongest (score 82)
-    assert "Domain" in out  # weakest (score 45)
     assert "borderline" in out  # 55 ≤ 63 < 70
+    # In _readiness(), E and Q exceed their benchmarks; D and L fall short.
+    assert "English" in out
+    assert "Quant" in out
+    assert "Domain" in out
+    assert "Logic" in out
+    # Domain has the largest shortfall, so it must precede Logic in the
+    # priority sentence.
+    assert out.index("Domain") < out.index("Logic")
 
 
 def test_narrative_fallback_bands_by_overall() -> None:
@@ -337,18 +345,37 @@ def test_narrative_fallback_bands_by_overall() -> None:
         readiness=_readiness(overall=40.0), student_name="P", track_name="BFSI"
     )
     assert "on track" in on_track
-    assert "below the bar" in at_risk
+    assert "at risk of falling short" in at_risk
+    assert _has_no_digits(on_track)
+    assert _has_no_digits(at_risk)
 
 
-def test_narrative_returns_two_to_three_sentences_and_caches(
+def test_narrative_fallback_all_exceeding_skips_priority_sentence() -> None:
+    """Strongest profile — no dimension below benchmark. Fallback should pivot
+    the CTA to 'sustain what you've built' rather than listing priorities."""
+    client = AnthropicClient(api_key=None)
+    out = client.readiness_narrative(
+        readiness=_readiness_all_exceeding(),
+        student_name="X",
+        track_name="BFSI",
+    )
+    assert "on track" in out
+    assert "exceeding the benchmark" in out
+    assert "priority areas" not in out
+    assert "area to focus on" not in out
+    assert _has_no_digits(out)
+
+
+def test_narrative_returns_four_sentences_max_and_caches(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     client, sdk, _ = _client_with_mocked_sdk(monkeypatch)
     sdk.messages.create.return_value = _llm_response(
-        "Your overall BFSI readiness is 63, placing you in the borderline band. "
-        "You score strongest in Quant at 82. "
-        "The biggest opportunity is Domain at 45. "
-        "A fourth sentence that must be dropped."
+        "You're in the borderline band for BFSI, on the edge of placement-ready. "
+        "You already exceed the benchmark in English and Quant. "
+        "The path of focus runs through Domain and then Logic. "
+        "Stay with that and a strong placement is within reach. "
+        "A fifth sentence that must be dropped."
     )
     a = client.readiness_narrative(
         readiness=_readiness(), student_name="P", track_name="BFSI"
@@ -357,7 +384,7 @@ def test_narrative_returns_two_to_three_sentences_and_caches(
         readiness=_readiness(), student_name="P", track_name="BFSI"
     )
     assert "borderline" in a
-    assert "fourth sentence" not in a
+    assert "fifth sentence" not in a
     assert a == b
     assert sdk.messages.create.call_count == 1
 
@@ -368,7 +395,9 @@ def test_narrative_empty_response_uses_fallback(monkeypatch: pytest.MonkeyPatch)
     out = client.readiness_narrative(
         readiness=_readiness(overall=63), student_name="P", track_name="BFSI"
     )
-    assert "63" in out  # fell back to deterministic
+    # Fell back to deterministic structured prose — no numbers, but still
+    # surfaces the band.
+    assert _has_no_digits(out)
     assert "borderline" in out
 
 
@@ -379,3 +408,28 @@ def test_narrative_timeout_uses_fallback(monkeypatch: pytest.MonkeyPatch) -> Non
         readiness=_readiness(), student_name="P", track_name="BFSI"
     )
     assert "BFSI" in out
+    assert _has_no_digits(out)
+
+
+# --- helpers for the no-digit invariant ------------------------------------
+
+
+def _has_no_digits(text: str) -> bool:
+    import re
+
+    return re.search(r"\d", text) is None
+
+
+def _readiness_all_exceeding() -> ReadinessResult:
+    return ReadinessResult(
+        student_id="STU_Y",
+        track="BFSI",
+        overall=90.0,
+        dimensions=[
+            DimensionScore(
+                dimension=dim, score=90, benchmark=70, assessment_avg=90,
+                attendance_pct=92, time_on_task_hrs=25, signals=[],
+            )
+            for dim in ("E", "L", "Q", "D")
+        ],
+    )

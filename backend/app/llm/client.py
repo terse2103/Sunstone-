@@ -49,10 +49,10 @@ DEFAULT_BACKOFF_429_SEC = 1.0
 
 MAX_GAP_RATIONALE_TOKENS = 120
 MAX_INTERVENTION_TOKENS = 220
-MAX_NARRATIVE_TOKENS = 200
+MAX_NARRATIVE_TOKENS = 260
 
 BRIEF_LINE_COUNT = 3
-NARRATIVE_MAX_SENTENCES = 3
+NARRATIVE_MAX_SENTENCES = 4
 
 _FALLBACK_GAP_TMPL = (
     "Below the {track} benchmark of {benchmark:.0f} (your score: {score:.0f})."
@@ -325,31 +325,72 @@ def _fallback_gap_rationale(gap: Gap, track_name: str) -> str:
 
 
 def _fallback_readiness_narrative(readiness: ReadinessResult, track_name: str) -> str:
-    if readiness.overall >= 70:
-        band = "on track"
-    elif readiness.overall >= 55:
-        band = "borderline"
+    """Deterministic narrative used when the LLM is unavailable.
+
+    Mirrors the structure dictated by ``READINESS_NARRATIVE_SYSTEM``: band,
+    optional exceeding sentence, optional priority-path sentence, call to
+    action — and crucially uses no numbers.
+    """
+    overall = readiness.overall
+    if overall >= 70:
+        band_clause = f"on track for a strong placement in {track_name}"
+    elif overall >= 55:
+        band_clause = (
+            f"in the borderline band for {track_name} — close to "
+            "placement-ready, but not quite over the line yet"
+        )
     else:
-        band = "below the bar"
-    sorted_dims = sorted(readiness.dimensions, key=lambda ds: ds.score, reverse=True)
-    if not sorted_dims:
-        return (
-            f"Your overall {track_name} readiness is {readiness.overall:.0f}, "
-            f"placing you {band}."
+        band_clause = (
+            f"at risk of falling short of a {track_name} placement as "
+            "things stand today"
         )
-    top = sorted_dims[0]
-    bottom = sorted_dims[-1]
-    top_label = _DIMENSION_LABELS.get(top.dimension, top.dimension)
-    bottom_label = _DIMENSION_LABELS.get(bottom.dimension, bottom.dimension)
-    pieces = [
-        f"Your overall {track_name} readiness is {readiness.overall:.0f}, placing you {band}.",
-        f"You score strongest in {top_label} at {top.score:.0f}.",
-    ]
-    if bottom.dimension != top.dimension:
+
+    exceeding = sorted(
+        (d for d in readiness.dimensions if d.score >= d.benchmark),
+        key=lambda d: -(d.score - d.benchmark),
+    )
+    below = sorted(
+        (d for d in readiness.dimensions if d.score < d.benchmark),
+        key=lambda d: -(d.benchmark - d.score),
+    )
+
+    pieces = [f"You're {band_clause}."]
+
+    if exceeding:
+        names = [_DIMENSION_LABELS[d.dimension] for d in exceeding]
         pieces.append(
-            f"The biggest opportunity is {bottom_label} at {bottom.score:.0f}."
+            "You're already exceeding the benchmark in "
+            f"{_join_with_and(names)}."
         )
+
+    if below:
+        names = [_DIMENSION_LABELS[d.dimension] for d in below]
+        if len(names) == 1:
+            pieces.append(f"The area to focus on is {names[0]}.")
+        else:
+            pieces.append(
+                "The priority areas to work on, in order, are "
+                f"{_join_with_and(names)}."
+            )
+        pieces.append(
+            "Steady, focused effort on those will move you toward the "
+            "placement you're working for."
+        )
+    else:
+        pieces.append(
+            "Keep that depth of preparation up and your placement outcome "
+            "should reflect the work you've already put in."
+        )
+
     return " ".join(pieces)
+
+
+def _join_with_and(items: list[str]) -> str:
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return f"{', '.join(items[:-1])}, and {items[-1]}"
 
 
 def _fallback_intervention_brief(

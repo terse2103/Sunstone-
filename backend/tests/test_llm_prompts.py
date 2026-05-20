@@ -51,7 +51,12 @@ def test_system_prompts_include_injection_guard() -> None:
     assert INJECTION_GUARD in READINESS_NARRATIVE_SYSTEM
 
 
-def test_render_readiness_narrative_wraps_user_data_in_tag() -> None:
+def test_render_readiness_narrative_emits_precomputed_signals() -> None:
+    """The new narrative payload deliberately contains NO numbers and NO
+    student name — only the pre-computed band, exceeding dims, and priority
+    dims. Numbers and names are stripped on purpose so the model can't
+    accidentally surface them in the output.
+    """
     readiness = ReadinessResult(
         student_id="STU_X",
         track="BFSI",
@@ -62,8 +67,16 @@ def test_render_readiness_narrative_wraps_user_data_in_tag() -> None:
                 attendance_pct=85, time_on_task_hrs=18, signals=[],
             ),
             DimensionScore(
+                dimension="L", score=60, benchmark=70, assessment_avg=58,
+                attendance_pct=90, time_on_task_hrs=22, signals=[],
+            ),
+            DimensionScore(
                 dimension="Q", score=82, benchmark=78, assessment_avg=80,
                 attendance_pct=90, time_on_task_hrs=25, signals=[],
+            ),
+            DimensionScore(
+                dimension="D", score=45, benchmark=72, assessment_avg=40,
+                attendance_pct=88, time_on_task_hrs=24, signals=[],
             ),
         ],
     )
@@ -72,12 +85,70 @@ def test_render_readiness_narrative_wraps_user_data_in_tag() -> None:
     )
     pre, payload = out.split("<student_data>", 1)
     body, post = payload.split("</student_data>", 1)
-    assert "Priya Sharma" in body
-    assert "overall_readiness: 63.1" in body
-    assert "English (E): score 70, benchmark 65" in body
-    assert "Quant (Q): score 82, benchmark 78" in body
-    # The trailing instruction shouldn't contain student-controlled data.
+
+    # Student name must never appear in the prompt body (or the trailing
+    # instruction) — addressing 'you' is enforced by the system prompt and
+    # leaking the name here would give the model a way to break that rule.
+    assert "Priya Sharma" not in body
     assert "Priya Sharma" not in post
+
+    # No raw scores or benchmarks should be in the payload — only the
+    # pre-computed band + dimension classification.
+    assert "63" not in body
+    assert "score" not in body
+    assert "benchmark" not in body or "exceeding_benchmark" in body
+
+    assert "track: BFSI" in body
+    # Overall 63.1 is in the 55–70 borderline band.
+    assert "readiness_band: borderline" in body
+    # English (+5) outranks Quant (+4) on surplus, so listed first.
+    assert "exceeding_benchmark (strongest surplus first): English, Quant" in body
+    # Domain (-27) outranks Logic (-10) on shortfall, so listed first.
+    assert "priority_dimensions (work on first): Domain, Logic" in body
+
+
+def test_render_readiness_narrative_handles_all_exceeding() -> None:
+    """No priority dimensions — payload should mark it as '(none)' so the
+    model knows to skip the priority sentence and pivot the CTA."""
+    readiness = ReadinessResult(
+        student_id="STU_Y",
+        track="BFSI",
+        overall=88.0,
+        dimensions=[
+            DimensionScore(
+                dimension=dim, score=90, benchmark=70, assessment_avg=90,
+                attendance_pct=90, time_on_task_hrs=24, signals=[],
+            )
+            for dim in ("E", "L", "Q", "D")
+        ],
+    )
+    out = render_readiness_narrative(
+        readiness=readiness, student_name="X", track_name="BFSI"
+    )
+    assert "readiness_band: on track" in out
+    assert "priority_dimensions (work on first): (none)" in out
+
+
+def test_render_readiness_narrative_handles_all_below() -> None:
+    """No exceeding dimensions — payload should mark it as '(none)' so the
+    model skips the recognition sentence."""
+    readiness = ReadinessResult(
+        student_id="STU_Z",
+        track="Analytics",
+        overall=40.0,
+        dimensions=[
+            DimensionScore(
+                dimension=dim, score=40, benchmark=75, assessment_avg=40,
+                attendance_pct=60, time_on_task_hrs=10, signals=[],
+            )
+            for dim in ("E", "L", "Q", "D")
+        ],
+    )
+    out = render_readiness_narrative(
+        readiness=readiness, student_name="X", track_name="Analytics"
+    )
+    assert "readiness_band: at risk of falling short of placement" in out
+    assert "exceeding_benchmark (strongest surplus first): (none)" in out
 
 
 def test_render_gap_rationale_wraps_user_data_in_tag() -> None:
