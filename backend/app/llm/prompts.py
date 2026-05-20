@@ -62,16 +62,58 @@ READINESS_NARRATIVE_SYSTEM = (
 
 
 INTERVENTION_BRIEF_SYSTEM = (
-    "You write 3-line at-risk briefs for placement counselors. The counselor "
-    "decides on an intervention, so be concrete and signal-driven.\n\n"
-    "Output exactly 3 lines, in this order:\n"
-    "Line 1 — current readiness score and direction (improving / flat / declining).\n"
-    "Line 2 — the primary gap driving risk and its dimension.\n"
-    "Line 3 — the most actionable recent signal plus a concrete recommended step.\n\n"
+    "You write 3-line at-risk briefs for placement counselors. Each brief "
+    "drives an intervention decision, so be concrete, behavioural, and "
+    "purely qualitative.\n\n"
+    "You receive pre-computed signals: risk level, a coded trajectory "
+    "outlook, the dimensions ranked by severity, the sub-skills the student "
+    "struggles with most, the single lever to attack first (assessment "
+    "scores, attendance, or time on task), and the recent behavioural "
+    "signals seen by the program.\n\n"
+    "Output EXACTLY 3 lines, in this order, one sentence per line:\n\n"
+    "Line 1 — Risk, trajectory, projection.\n"
+    "  Name the student and state the level of risk of not getting placed. "
+    "Describe the current trajectory in plain language (improving, flat, "
+    "declining) and translate the 'trajectory_outlook' code into a "
+    "projection statement against the readiness needed for placement:\n"
+    "    on_track_above        → above the readiness needed for placement\n"
+    "    improving_in_reach    → improving, and on track to reach the "
+    "readiness needed for placement before the window closes\n"
+    "    improving_too_slow    → improving, but not fast enough to reach "
+    "the readiness needed for placement by the placement window at the "
+    "current pace\n"
+    "    flat_below            → stuck below the readiness needed for "
+    "placement — not closing the gap on the current trajectory\n"
+    "    declining             → falling further behind the readiness "
+    "needed for placement at the current trajectory\n"
+    "    unknown               → not enough cycle data to project\n\n"
+    "Line 2 — Dimensions in order of severity + struggling topics.\n"
+    "  Name the ELQD dimensions the student is struggling in, in the "
+    "priority order given by 'severity_ranked_dimensions' (use full names: "
+    "English, Logic, Quant, Domain). If 'top_struggling_subskills' is "
+    "non-empty, also call out the specific topics being struggled with by "
+    "their human-readable name (e.g. 'financial math', 'business "
+    "communication'). Phrase as a description of where the student is "
+    "struggling, not as advice.\n\n"
+    "Line 3 — Latest observed behaviour.\n"
+    "  Describe the most recent observable behaviour — an attendance issue, "
+    "low assessment performance, or low time-on-task / engagement. Anchor "
+    "the description to the value of 'primary_lever':\n"
+    "    attendance        → an attendance / missed-session issue\n"
+    "    assessment_scores → recent assessments scoring below expectation\n"
+    "    time_on_task      → engagement hours / study time running low\n"
+    "  Lean on the 'recent_behaviour' field for colour, but rephrase any "
+    "specific counts into qualitative language (e.g. 'missed several "
+    "sessions recently' rather than 'missed 4 of 6').\n\n"
     "Rules:\n"
-    "- One sentence per line. Plain text only — no markdown, no bullets, no numbering.\n"
-    "- Reference at least one numeric signal from the data (score, slope, days).\n"
-    "- No greetings, no sign-offs.\n\n"
+    "- NEVER include numbers, percentages, scores, days, weeks, or counts "
+    "in the OUTPUT. Not even in word form ('three sessions', 'eighty "
+    "percent'). The signals you receive may contain numbers — use them to "
+    "decide what to write, never to print.\n"
+    "- One sentence per line. Plain text only — no markdown, no bullets, "
+    "no numbering. No 'Line 1:' prefixes.\n"
+    "- Use the student's name in line 1.\n"
+    "- No greetings, no sign-offs, no recommendations after line 3.\n\n"
     f"{INJECTION_GUARD}"
 )
 
@@ -166,37 +208,72 @@ def render_intervention_brief(
     student_name: str,
     track_name: str,
 ) -> str:
-    slope_str = (
-        f"{at_risk.trajectory_slope:+.2f} per cycle"
-        if at_risk.trajectory_slope is not None
-        else "insufficient data"
+    """Hand the model the pre-computed signals only — never raw numbers.
+
+    The classification and ranking is done in ``core/at_risk.py`` so the model
+    can focus on prose. We deliberately omit ``readiness``, ``trajectory_slope``,
+    ``days_to_placement``, ``gap_size`` — keeping numbers off the prompt means
+    the model can't accidentally surface them in the output.
+    """
+    severity_dims = (
+        ", ".join(at_risk.severity_ranked_dimensions)
+        if at_risk.severity_ranked_dimensions
+        else "(none)"
     )
-    primary_block = (
-        (
-            f"  primary_gap_subskill: {at_risk.primary_gap.subskill}\n"
-            f"  primary_gap_dimension: {at_risk.primary_gap.dimension}\n"
-            f"  primary_gap_size: {at_risk.primary_gap.gap_size:.1f}\n"
-        )
+    topics = (
+        ", ".join(_humanise_subskill(s) for s in at_risk.top_struggling_subskills)
+        if at_risk.top_struggling_subskills
+        else "(none)"
+    )
+    primary_subskill = (
+        _humanise_subskill(at_risk.primary_gap.subskill)
         if at_risk.primary_gap is not None
-        else "  primary_gap: none\n"
+        else "(none)"
     )
-    signals_block = (
-        "\n".join(f"  - {s}" for s in at_risk.contributing_signals)
-        if at_risk.contributing_signals
-        else "  (none)"
-    )
+    lever = at_risk.primary_lever or "unknown"
+    # Recent behaviour: prefer signals the student is tagged with directly; we
+    # explicitly drop the synthetic readiness_below_55 / placement_window / etc.
+    # entries because they're raw numbers, which we never want in the output.
+    behaviour_candidates = [
+        s
+        for s in at_risk.contributing_signals
+        if not _looks_like_internal_signal(s)
+    ]
+    recent_behaviour = behaviour_candidates[0] if behaviour_candidates else "(none)"
+
     return (
         "<student_data>\n"
         f"  student_name: {student_name}\n"
         f"  track: {track_name}\n"
         f"  risk_level: {at_risk.risk_level}\n"
-        f"  flagged: {at_risk.flagged}\n"
-        f"  readiness: {at_risk.readiness:.1f}\n"
-        f"  trajectory_slope: {slope_str}\n"
-        f"  days_to_placement: {at_risk.days_to_placement}\n"
-        f"{primary_block}"
-        "  contributing_signals:\n"
-        f"{signals_block}\n"
+        f"  trajectory_outlook: {at_risk.trajectory_outlook}\n"
+        f"  severity_ranked_dimensions: {severity_dims}\n"
+        f"  top_struggling_subskills (human-readable): {topics}\n"
+        f"  primary_subskill: {primary_subskill}\n"
+        f"  primary_lever: {lever}\n"
+        f"  recent_behaviour: {recent_behaviour}\n"
         "</student_data>\n\n"
         "Write the 3-line brief."
     )
+
+
+def _humanise_subskill(name: str) -> str:
+    """``financial_math`` → ``financial math``. Frontend mirrors this in
+    ``frontend/src/lib/dimensions.ts``; we keep it lower-case here so the LLM
+    can choose its own capitalisation in flowing prose."""
+    return name.replace("_", " ")
+
+
+_INTERNAL_SIGNAL_PREFIXES = (
+    "readiness_below_",
+    "flat_or_declining_trajectory",
+    "placement_window",
+    "insufficient_trajectory_data",
+    "newly_enrolled",
+    "no_data:",
+    "missing_signal:",
+)
+
+
+def _looks_like_internal_signal(signal: str) -> bool:
+    return any(signal.startswith(prefix) for prefix in _INTERNAL_SIGNAL_PREFIXES)

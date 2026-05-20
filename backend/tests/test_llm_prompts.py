@@ -40,6 +40,10 @@ def _at_risk(**overrides) -> AtRiskAssessment:
         days_to_placement=140,
         primary_gap=_gap(),
         contributing_signals=["Missed 4 of last 6 sessions"],
+        primary_lever="assessment_scores",
+        trajectory_outlook="declining",
+        top_struggling_subskills=["quant_aptitude", "financial_math"],
+        severity_ranked_dimensions=["Quant", "Domain"],
     )
     base.update(overrides)
     return AtRiskAssessment(**base)
@@ -175,31 +179,80 @@ def test_render_gap_rationale_handles_missing_jd_frequency() -> None:
     assert "JD frequency unknown" in out
 
 
-def test_render_intervention_brief_includes_all_decision_inputs() -> None:
+def test_render_intervention_brief_emits_precomputed_signals() -> None:
+    """The new payload carries only pre-computed qualitative signals — no
+    raw scores, slopes, days, or gap sizes. Those numbers are stripped on
+    purpose so the model can't surface them in the 3-line output."""
     out = render_intervention_brief(
         at_risk=_at_risk(), student_name="Meera Iyer", track_name="BFSI"
     )
-    assert "Meera Iyer" in out
-    assert "readiness: 38.4" in out
-    assert "trajectory_slope: -3.50 per cycle" in out
-    assert "days_to_placement: 140" in out
-    assert "primary_gap_subskill: quant_aptitude" in out
-    assert "Missed 4 of last 6 sessions" in out
+    pre, payload = out.split("<student_data>", 1)
+    body, post = payload.split("</student_data>", 1)
+
+    assert "student_name: Meera Iyer" in body
+    assert "track: BFSI" in body
+    assert "risk_level: high" in body
+    assert "trajectory_outlook: declining" in body
+    assert "severity_ranked_dimensions: Quant, Domain" in body
+    # Sub-skills are humanised (underscores stripped) for the LLM.
+    assert "quant aptitude, financial math" in body
+    assert "primary_subskill: quant aptitude" in body
+    assert "primary_lever: assessment_scores" in body
+    # Recent behaviour: the only contributing-signal that isn't an internal
+    # tag like 'readiness_below_55' or 'placement_window'.
+    assert "recent_behaviour: Missed 4 of last 6 sessions" in body
+
+    # Raw numbers must NOT leak into the prompt payload.
+    assert "38.4" not in body  # readiness
+    assert "-3.5" not in body  # slope
+    assert "140" not in body  # days_to_placement
+    assert "25.0" not in body  # gap_size
+    # And nothing student-controlled should appear in the trailing
+    # instruction.
+    assert "Meera Iyer" not in post
 
 
-def test_render_intervention_brief_handles_no_slope() -> None:
-    out = render_intervention_brief(
-        at_risk=_at_risk(trajectory_slope=None),
-        student_name="Test",
-        track_name="BFSI",
+def test_render_intervention_brief_drops_internal_signals_from_recent_behaviour() -> None:
+    """Internal signals (readiness_below_55, placement_window, etc.) are
+    raw-number-bearing strings. They must never become the 'recent_behaviour'
+    the LLM is told to phrase as latest behaviour."""
+    at_risk = _at_risk(
+        contributing_signals=[
+            "readiness_below_55:38.4",
+            "placement_window:140d",
+            "Attendance trending down over last 4 weeks",
+        ]
     )
-    assert "trajectory_slope: insufficient data" in out
+    out = render_intervention_brief(
+        at_risk=at_risk, student_name="Test", track_name="BFSI"
+    )
+    # Picks the first non-internal signal.
+    assert "recent_behaviour: Attendance trending down over last 4 weeks" in out
+    # The internal tag never lands in the recent_behaviour line.
+    assert "recent_behaviour: readiness_below_55" not in out
 
 
 def test_render_intervention_brief_handles_no_primary_gap() -> None:
     out = render_intervention_brief(
-        at_risk=_at_risk(primary_gap=None),
+        at_risk=_at_risk(
+            primary_gap=None,
+            top_struggling_subskills=[],
+            severity_ranked_dimensions=[],
+            primary_lever=None,
+        ),
         student_name="Test",
         track_name="BFSI",
     )
-    assert "primary_gap: none" in out
+    assert "primary_subskill: (none)" in out
+    assert "severity_ranked_dimensions: (none)" in out
+    assert "top_struggling_subskills (human-readable): (none)" in out
+    assert "primary_lever: unknown" in out
+
+
+def test_render_intervention_brief_handles_no_recent_behaviour() -> None:
+    out = render_intervention_brief(
+        at_risk=_at_risk(contributing_signals=["readiness_below_55:38.4"]),
+        student_name="Test",
+        track_name="BFSI",
+    )
+    assert "recent_behaviour: (none)" in out

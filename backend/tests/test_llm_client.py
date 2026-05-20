@@ -68,8 +68,8 @@ def _gap() -> Gap:
     )
 
 
-def _at_risk() -> AtRiskAssessment:
-    return AtRiskAssessment(
+def _at_risk(**overrides) -> AtRiskAssessment:
+    base = dict(
         student_id="STU_X",
         risk_level="high",
         flagged=True,
@@ -78,7 +78,13 @@ def _at_risk() -> AtRiskAssessment:
         days_to_placement=140,
         primary_gap=_gap(),
         contributing_signals=["Missed 4 of last 6 sessions"],
+        primary_lever="assessment_scores",
+        trajectory_outlook="declining",
+        top_struggling_subskills=["quant_aptitude", "financial_math"],
+        severity_ranked_dimensions=["Quant", "Domain"],
     )
+    base.update(overrides)
+    return AtRiskAssessment(**base)
 
 
 def _readiness(overall: float = 63.0) -> ReadinessResult:
@@ -139,10 +145,69 @@ def test_no_api_key_uses_deterministic_intervention_fallback() -> None:
         at_risk=_at_risk(), student_name="Priya", track_name="BFSI"
     )
     assert len(out) == 3
+    # Line 1 names the student, the track, the risk level, and the trajectory
+    # outlook in plain language — no numbers.
     assert "Priya" in out[0]
-    assert "38" in out[0]  # readiness
-    assert "quant_aptitude" in out[1]
-    assert "1:1" in out[2]
+    assert "BFSI" in out[0]
+    assert "high risk" in out[0]
+    assert "falling further behind" in out[0]  # 'declining' outlook phrase
+    assert _has_no_digits(out[0])
+
+    # Line 2 ranks dimensions in severity order + names topics.
+    assert "Quant" in out[1]
+    assert "Domain" in out[1]
+    assert "quant aptitude" in out[1]  # humanised sub-skill
+    assert "financial math" in out[1]
+    assert _has_no_digits(out[1])
+
+    # Line 3 is anchored to primary_lever ('assessment_scores').
+    assert "assessments" in out[2].lower()
+    assert _has_no_digits(out[2])
+
+
+def test_intervention_fallback_lever_drives_line_three() -> None:
+    """Different levers should produce different line-3 behavioural phrasing."""
+    client = AnthropicClient(api_key=None)
+
+    attendance = client.intervention_brief(
+        at_risk=_at_risk(primary_lever="attendance"),
+        student_name="A",
+        track_name="BFSI",
+    )
+    time_on_task = client.intervention_brief(
+        at_risk=_at_risk(primary_lever="time_on_task"),
+        student_name="B",
+        track_name="BFSI",
+    )
+    assert "attendance" in attendance[2].lower()
+    assert "engagement" in time_on_task[2].lower() or "study" in time_on_task[2].lower()
+    # Cross-check they're actually different.
+    assert attendance[2] != time_on_task[2]
+
+
+def test_intervention_fallback_outlook_drives_line_one() -> None:
+    """The trajectory_outlook code drives the projection clause in line 1."""
+    client = AnthropicClient(api_key=None)
+
+    declining = client.intervention_brief(
+        at_risk=_at_risk(trajectory_outlook="declining"),
+        student_name="A",
+        track_name="BFSI",
+    )
+    improving_in_reach = client.intervention_brief(
+        at_risk=_at_risk(trajectory_outlook="improving_in_reach"),
+        student_name="B",
+        track_name="BFSI",
+    )
+    flat = client.intervention_brief(
+        at_risk=_at_risk(trajectory_outlook="flat_below"),
+        student_name="C",
+        track_name="BFSI",
+    )
+    assert "falling further behind" in declining[0]
+    assert "improving" in improving_in_reach[0] and "before the window closes" in improving_in_reach[0]
+    assert "stuck below" in flat[0]
+    assert all(_has_no_digits(line) for line in declining + improving_in_reach + flat)
 
 
 def test_no_api_key_fallback_is_cached(monkeypatch: pytest.MonkeyPatch) -> None:

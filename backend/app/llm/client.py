@@ -396,36 +396,95 @@ def _join_with_and(items: list[str]) -> str:
 def _fallback_intervention_brief(
     at_risk: AtRiskAssessment, student_name: str, track_name: str
 ) -> list[str]:
-    direction = "no trend data"
-    if at_risk.trajectory_slope is not None:
-        if at_risk.trajectory_slope > 0:
-            direction = "improving"
-        elif at_risk.trajectory_slope < 0:
-            direction = "declining"
-        else:
-            direction = "flat"
+    """Deterministic 3-line brief used when the LLM is unavailable.
 
-    line1 = (
-        f"{student_name} ({track_name}): readiness {at_risk.readiness:.0f}, "
-        f"trajectory {direction}."
+    Mirrors the structure dictated by ``INTERVENTION_BRIEF_SYSTEM`` — risk +
+    trajectory + projection, then dim severity + topics, then a recent
+    behavioural signal — and contains no numbers.
+    """
+    line1 = _fallback_brief_line1(at_risk, student_name, track_name)
+    line2 = _fallback_brief_line2(at_risk)
+    line3 = _fallback_brief_line3(at_risk)
+    return [line1, line2, line3]
+
+
+_RISK_PHRASE = {
+    "high": "is at high risk of not getting placed",
+    "medium": "is at meaningful risk of not getting placed",
+    "low": "is currently tracking toward a placement",
+    "unknown": "does not have enough assessment history yet to read risk",
+}
+
+_OUTLOOK_PHRASE = {
+    "on_track_above": (
+        "is currently above the readiness needed for placement"
+    ),
+    "improving_in_reach": (
+        "is improving and, if this trajectory holds, will reach the "
+        "readiness needed for placement before the window closes"
+    ),
+    "improving_too_slow": (
+        "is improving, but not fast enough to reach the readiness needed "
+        "for placement at the current pace"
+    ),
+    "flat_below": (
+        "is stuck below the readiness needed for placement, with no closing "
+        "of the gap on the current trajectory"
+    ),
+    "declining": (
+        "is falling further behind the readiness needed for placement at "
+        "the current trajectory"
+    ),
+    "unknown": (
+        "does not yet have enough trajectory data to project against the "
+        "readiness needed for placement"
+    ),
+}
+
+_LEVER_BEHAVIOUR = {
+    "assessment_scores": (
+        "Recent assessments are scoring below where they need to be for "
+        "placement — focused practice is the priority."
+    ),
+    "attendance": (
+        "Attendance has been slipping in recent sessions, which is the "
+        "most actionable issue right now."
+    ),
+    "time_on_task": (
+        "Engagement time is well below the recommended study hours — "
+        "rebuilding consistent practice time is the priority."
+    ),
+}
+
+
+def _fallback_brief_line1(
+    at_risk: AtRiskAssessment, student_name: str, track_name: str
+) -> str:
+    risk_clause = _RISK_PHRASE.get(at_risk.risk_level, _RISK_PHRASE["unknown"])
+    outlook_clause = _OUTLOOK_PHRASE.get(
+        at_risk.trajectory_outlook, _OUTLOOK_PHRASE["unknown"]
     )
-    if at_risk.primary_gap is not None:
-        line2 = (
-            f"Primary gap: {at_risk.primary_gap.subskill} "
-            f"({at_risk.primary_gap.dimension}) — "
-            f"{at_risk.primary_gap.gap_size:.0f} pts below benchmark; "
-            f"risk level {at_risk.risk_level}."
+    return f"{student_name} ({track_name}) {risk_clause}, and {outlook_clause}."
+
+
+def _fallback_brief_line2(at_risk: AtRiskAssessment) -> str:
+    if at_risk.severity_ranked_dimensions:
+        dims_clause = (
+            "Most struggling in "
+            + _join_with_and(at_risk.severity_ranked_dimensions)
         )
     else:
-        line2 = f"No single dominant gap identified; risk level {at_risk.risk_level}."
+        dims_clause = "No dimension is currently below the benchmark"
 
-    signal = (
-        at_risk.contributing_signals[0]
-        if at_risk.contributing_signals
-        else "Review recent activity"
-    )
-    line3 = (
-        f"{signal}. Recommended next step: schedule a 1:1 within the "
-        f"{at_risk.days_to_placement}-day placement window."
-    )
-    return [line1, line2, line3]
+    if at_risk.top_struggling_subskills:
+        topics = [
+            s.replace("_", " ") for s in at_risk.top_struggling_subskills
+        ]
+        return f"{dims_clause} — particularly in {_join_with_and(topics)}."
+    return f"{dims_clause}."
+
+
+def _fallback_brief_line3(at_risk: AtRiskAssessment) -> str:
+    if at_risk.primary_lever in _LEVER_BEHAVIOUR:
+        return _LEVER_BEHAVIOUR[at_risk.primary_lever]
+    return "Review the student's recent activity for an actionable signal."

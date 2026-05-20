@@ -355,3 +355,187 @@ def test_primary_gap_is_top_priority_gap() -> None:
     assert out.primary_gap is not None
     # quant has the highest priority because dim weight is 0.7
     assert out.primary_gap.subskill == "quant_basic"
+
+
+# --- new P10 fields: lever, outlook, severity-ranked dims --------------------
+
+
+def test_severity_ranked_dimensions_follows_gap_priority() -> None:
+    """Dimensions appear in the same order they first show up in the
+    priority-sorted gap list."""
+    track = _track(
+        weights={"E": 0.1, "L": 0.1, "Q": 0.7, "D": 0.1},
+        subskills={
+            "english_basic": ("E", 80),
+            "logic_basic": ("L", 80),
+            "quant_basic": ("Q", 80),  # heavily weighted dim
+            "domain_basic": ("D", 80),
+        },
+    )
+    s = _student(
+        cycles_per_subskill={
+            "english_basic": [30, 30, 30],
+            "logic_basic": [50, 50, 50],
+            "quant_basic": [50, 50, 50],
+            "domain_basic": [70, 70, 70],
+        },
+        attendance=60,
+        time_on_task_hrs=12,
+    )
+    out = assess_at_risk(s, track)
+    # Quant dominates on priority (0.7 weight); English follows because it's
+    # the deepest unweighted gap; then Logic and Domain.
+    assert out.severity_ranked_dimensions[0] == "Quant"
+    assert "English" in out.severity_ranked_dimensions
+    assert out.top_struggling_subskills[0] == "quant_basic"
+    assert "english_basic" in out.top_struggling_subskills
+
+
+def test_top_struggling_subskills_capped_at_three() -> None:
+    track = _track()
+    s = _student(
+        cycles_per_subskill=_uniform_cycles([30, 30, 30]),
+        attendance=40,
+        time_on_task_hrs=5,
+    )
+    out = assess_at_risk(s, track)
+    assert len(out.top_struggling_subskills) <= 3
+
+
+def test_primary_lever_assessment_when_scores_drag_the_most() -> None:
+    """assessment_avg has 0.6 weight, so when scores are deeply low and the
+    other signals are healthy, assessment_scores is the biggest weighted
+    shortfall."""
+    track = _track()
+    s = _student(
+        cycles_per_subskill=_uniform_cycles([30, 30, 30]),
+        attendance=90,
+        time_on_task_hrs=25,  # caps at 100% time
+    )
+    out = assess_at_risk(s, track)
+    assert out.primary_lever == "assessment_scores"
+
+
+def test_primary_lever_attendance_when_scores_near_bench_and_attendance_weak() -> None:
+    """Assessment shortfall: (100-78) * 0.6 = 13.2. Attendance shortfall:
+    (100-20) * 0.2 = 16. Attendance wins the lever — what the counselor
+    should attack first."""
+    track = _track()
+    s = _student(
+        cycles_per_subskill=_uniform_cycles([78, 78, 78]),
+        attendance=20,
+        time_on_task_hrs=24,
+    )
+    out = assess_at_risk(s, track)
+    # The primary gap exists (78 < benchmark 80) so a lever is computed.
+    assert out.primary_gap is not None
+    assert out.primary_lever == "attendance"
+
+
+def test_primary_lever_time_on_task_when_thats_the_drag() -> None:
+    """Scores at benchmark, attendance near full, but engagement very low →
+    time_on_task is the actionable lever."""
+    track = _track()
+    s = _student(
+        cycles_per_subskill=_uniform_cycles([78, 78, 78]),
+        attendance=95,
+        time_on_task_hrs=3,  # 12% of the 25h cap
+    )
+    out = assess_at_risk(s, track)
+    assert out.primary_lever == "time_on_task"
+
+
+def test_primary_lever_none_when_no_gap() -> None:
+    """If the student exceeds every benchmark, there's no primary gap and
+    therefore no lever to surface."""
+    track = _track()
+    s = _student(
+        cycles_per_subskill=_uniform_cycles([90, 90, 90]),
+        attendance=95,
+        time_on_task_hrs=25,
+    )
+    out = assess_at_risk(s, track)
+    assert out.primary_gap is None
+    assert out.primary_lever is None
+
+
+def test_trajectory_outlook_declining() -> None:
+    track = _track()
+    s = _student(
+        cycles_per_subskill=_uniform_cycles([60, 50, 40]),
+        attendance=50,
+        time_on_task_hrs=10,
+    )
+    out = assess_at_risk(s, track)
+    assert out.trajectory_outlook == "declining"
+
+
+def test_trajectory_outlook_flat_below_when_slope_zero_and_below_threshold() -> None:
+    track = _track()
+    s = _student(
+        cycles_per_subskill=_uniform_cycles([45, 45, 45]),
+        attendance=55,
+        time_on_task_hrs=12,
+    )
+    out = assess_at_risk(s, track)
+    assert out.trajectory_slope == pytest.approx(0.0)
+    assert out.readiness < 55
+    assert out.trajectory_outlook == "flat_below"
+
+
+def test_trajectory_outlook_improving_in_reach() -> None:
+    """Improving fast enough to cross the 55-point threshold before the
+    placement window closes."""
+    track = _track()
+    # slope ~ +10 per cycle, currently in mid-40s, lots of placement window.
+    s = _student(
+        cycles_per_subskill=_uniform_cycles([30, 40, 50]),
+        attendance=55,
+        time_on_task_hrs=12,
+        days_to_placement=180,  # ~6 cycles remaining
+    )
+    out = assess_at_risk(s, track)
+    assert out.trajectory_slope is not None and out.trajectory_slope > 0
+    assert out.readiness < 55
+    assert out.trajectory_outlook == "improving_in_reach"
+
+
+def test_trajectory_outlook_improving_too_slow() -> None:
+    """Improving but the gap is too wide to close before placement at this
+    pace."""
+    track = _track()
+    # Tiny slope, deep current gap, short remaining window.
+    s = _student(
+        cycles_per_subskill=_uniform_cycles([20, 21, 22]),
+        attendance=40,
+        time_on_task_hrs=5,
+        days_to_placement=60,  # ~2 cycles
+    )
+    out = assess_at_risk(s, track)
+    assert out.trajectory_slope is not None and out.trajectory_slope > 0
+    assert out.readiness < 55
+    assert out.trajectory_outlook == "improving_too_slow"
+
+
+def test_trajectory_outlook_on_track_above_threshold() -> None:
+    track = _track()
+    s = _student(
+        cycles_per_subskill=_uniform_cycles([75, 78, 80]),
+        attendance=90,
+        time_on_task_hrs=25,
+    )
+    out = assess_at_risk(s, track)
+    assert out.readiness >= 55
+    assert out.trajectory_outlook == "on_track_above"
+
+
+def test_trajectory_outlook_unknown_when_no_slope_data() -> None:
+    track = _track()
+    s = _student(
+        cycles_per_subskill=_uniform_cycles([40]),  # single cycle → no slope
+        attendance=50,
+        time_on_task_hrs=8,
+    )
+    out = assess_at_risk(s, track)
+    assert out.trajectory_slope is None
+    assert out.trajectory_outlook == "unknown"

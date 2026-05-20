@@ -1,6 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
 import { api, ApiError } from "../api";
-import type { AtRiskAssessment, InterventionBrief, RiskLevel } from "../api/types";
+import type {
+  AtRiskAssessment,
+  InterventionBrief,
+  PrimaryLever,
+  RiskLevel,
+} from "../api/types";
 import { DIMENSION_LABEL, formatSubskill } from "../lib/dimensions";
 
 const RISK_STYLE: Record<RiskLevel, string> = {
@@ -8,6 +13,21 @@ const RISK_STYLE: Record<RiskLevel, string> = {
   medium: "bg-warning-500/10 text-warning-500 border-warning-500/40",
   low: "bg-success-500/10 text-success-500 border-success-500/40",
   unknown: "bg-ink-100 text-ink-600 border-ink-200",
+};
+
+const LEVER_LABEL: Record<PrimaryLever, string> = {
+  assessment_scores: "Raising assessment scores",
+  attendance: "Improving attendance",
+  time_on_task: "Increasing time on task",
+};
+
+const LEVER_HINT: Record<PrimaryLever, string> = {
+  assessment_scores:
+    "The deepest weighted gap is in academic performance — focused practice on the sub-skill below is the highest-impact move.",
+  attendance:
+    "Scores are close to benchmark, but missed sessions are the biggest drag on this dimension's score.",
+  time_on_task:
+    "Scores and attendance are close to benchmark; engagement / study hours are the biggest drag.",
 };
 
 interface Props {
@@ -73,21 +93,33 @@ export function InterventionBriefCard({ studentId, brief, assessment }: Props) {
       </ol>
 
       {assessment?.primary_gap ? (
-        <div className="mt-5 rounded-lg border border-ink-200 bg-ink-50 p-3 text-sm">
+        <div className="mt-5 rounded-lg border border-ink-200 bg-ink-50 p-3 text-sm md:p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-ink-500">
-            Primary gap
+            Primary gap · start with
           </p>
-          <p className="mt-1 text-ink-800">
-            {formatSubskill(assessment.primary_gap.subskill)}{" "}
+          {assessment.primary_lever ? (
+            <p className="mt-1 text-base font-semibold text-ink-900">
+              {LEVER_LABEL[assessment.primary_lever]}
+            </p>
+          ) : null}
+          <p className="mt-1 text-sm text-ink-800">
+            in {formatSubskill(assessment.primary_gap.subskill)}{" "}
             <span className="text-ink-500">
               ({DIMENSION_LABEL[assessment.primary_gap.dimension]})
-            </span>{" "}
-            · score{" "}
-            <span className="font-semibold">
+            </span>
+          </p>
+          {assessment.primary_lever ? (
+            <p className="mt-2 text-xs text-ink-600">
+              {LEVER_HINT[assessment.primary_lever]}
+            </p>
+          ) : null}
+          <p className="mt-2 text-xs tabular-nums text-ink-500">
+            Current score{" "}
+            <span className="font-semibold text-ink-700">
               {Math.round(assessment.primary_gap.student_score)}
             </span>{" "}
-            vs target{" "}
-            <span className="font-semibold">
+            · Benchmark{" "}
+            <span className="font-semibold text-ink-700">
               {Math.round(assessment.primary_gap.benchmark)}
             </span>
           </p>

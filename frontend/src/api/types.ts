@@ -70,6 +70,19 @@ export interface Gap {
   rationale: string | null;
 }
 
+export type PrimaryLever =
+  | "assessment_scores"
+  | "attendance"
+  | "time_on_task";
+
+export type TrajectoryOutlook =
+  | "on_track_above"
+  | "improving_in_reach"
+  | "improving_too_slow"
+  | "flat_below"
+  | "declining"
+  | "unknown";
+
 export interface AtRiskAssessment {
   student_id: string;
   risk_level: RiskLevel;
@@ -79,6 +92,10 @@ export interface AtRiskAssessment {
   days_to_placement: number;
   primary_gap: Gap | null;
   contributing_signals: string[];
+  primary_lever: PrimaryLever | null;
+  trajectory_outlook: TrajectoryOutlook;
+  top_struggling_subskills: string[];
+  severity_ranked_dimensions: string[];
 }
 
 export interface InterventionBrief {
