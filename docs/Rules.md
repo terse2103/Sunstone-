@@ -13,6 +13,7 @@ Rules to follow during implementation. These exist to keep the architecture inta
 5. **Run `pytest backend/` after every change to `core/` or `models/`.** No commit with red tests.
 6. **Run `python evals/run.py` after changes to `core/scoring.py`, `core/gaps.py`, or `core/at_risk.py`.** Investigate eval failures — never suppress.
 7. **Verify mobile responsiveness after every frontend feature.** Use browser devtools at 360px width.
+8. **Keep `ManualSetup.md` in sync.** Whenever a task surfaces something only the user can do — a credential (API key, deploy token), an account (Render, Vercel, Anthropic), an env var with a real secret, a human action (record demo, capture screenshots) — append it to `ManualSetup.md` as an unchecked `[ ]` checkbox *before* asking the user to do it. Never tick a box on the user's behalf; they own completion.
 
 ## Code Rules
 

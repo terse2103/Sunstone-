@@ -4,7 +4,7 @@
 **Test approach:** Unit tests on `core/` (pytest); evals as integration tests; manual verification for frontend.
 **Estimated total effort:** ~35 hours of focused work.
 
-**Related:** [`architecture.md`](./architecture.md) · [`EdgeCases.md`](./EdgeCases.md) · [`Rules.md`](./Rules.md) · [`To-doList.md`](./To-doList.md)
+**Related:** [`architecture.md`](./architecture.md) · [`EdgeCases.md`](./EdgeCases.md) · [`Rules.md`](./Rules.md) · [`To-doList.md`](./To-doList.md) · [`phase-2-roadmap.md`](./phase-2-roadmap.md)
 
 ---
 

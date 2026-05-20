@@ -1,11 +1,11 @@
 # PlacementIQ — Implementation Tracker
 
-**Overall Progress: 22%** (13 of 59 tasks)
+**Overall Progress: 83%** (49 of 59 tasks)
 **Last updated:** 2026-05-20
 
 Update protocol: see [`Rules.md`](./Rules.md). Mark `[x]` immediately on completion, update the overall and per-phase percentages, and bump the "Last updated" date.
 
-**Related:** [`architecture.md`](./architecture.md) · [`ImplementationPlan.md`](./ImplementationPlan.md) · [`EdgeCases.md`](./EdgeCases.md) · [`Rules.md`](./Rules.md)
+**Related:** [`architecture.md`](./architecture.md) · [`ImplementationPlan.md`](./ImplementationPlan.md) · [`EdgeCases.md`](./EdgeCases.md) · [`Rules.md`](./Rules.md) · [`ManualSetup.md`](./ManualSetup.md) · [`phase-2-roadmap.md`](./phase-2-roadmap.md)
 
 ---
 
@@ -32,74 +32,74 @@ Update protocol: see [`Rules.md`](./Rules.md). Mark `[x]` immediately on complet
 
 ---
 
-## Phase 2 — Backend Core Engine — 0% (0 of 6)
+## Phase 2 — Backend Core Engine — 100% (6 of 6)
 
-- [ ] core/scoring.py — compute_dimension_score + compute_readiness
-- [ ] Unit tests for scoring (on-track / borderline / at-risk + boundary cases)
-- [ ] core/gaps.py — compute_gaps + top_n_gaps with stable tiebreak
-- [ ] Unit tests for gaps (tied priorities, zero gaps, fewer-than-n)
-- [ ] core/at_risk.py — assess_at_risk with trajectory slope + risk levels
-- [ ] Unit tests for at_risk (boundary cases §4.1–4.4)
-
----
-
-## Phase 3 — Backend LLM Layer — 0% (0 of 3)
-
-- [ ] llm/prompts.py — GAP_RATIONALE_PROMPT + INTERVENTION_BRIEF_PROMPT (with §5.6 guard)
-- [ ] llm/client.py — AnthropicClient with cache, timeout, backoff, fallback strings
-- [ ] Manual smoke test: valid key + missing-key fallback verified
+- [x] core/scoring.py — compute_dimension_score + compute_readiness
+- [x] Unit tests for scoring (on-track / borderline / at-risk + boundary cases)
+- [x] core/gaps.py — compute_gaps + top_n_gaps with stable tiebreak
+- [x] Unit tests for gaps (tied priorities, zero gaps, fewer-than-n)
+- [x] core/at_risk.py — assess_at_risk with trajectory slope + risk levels
+- [x] Unit tests for at_risk (boundary cases §4.1–4.4)
 
 ---
 
-## Phase 4 — Backend API Routes — 0% (0 of 6)
+## Phase 3 — Backend LLM Layer — 100% (3 of 3)
 
-- [ ] main.py — FastAPI app, CORS, lifespan, /healthz
-- [ ] routes/auth.py — POST /api/auth/login
-- [ ] routes/student.py — GET /students, /students/{id}, /readiness, /gaps
-- [ ] routes/counselor.py — GET /at-risk, /brief, POST /action
-- [ ] routes/evals.py — GET /api/evals/results (handles not-run state)
-- [ ] Manual verification via /docs (Swagger)
+- [x] llm/prompts.py — GAP_RATIONALE_PROMPT + INTERVENTION_BRIEF_PROMPT (with §5.6 guard)
+- [x] llm/client.py — AnthropicClient with cache, timeout, backoff, fallback strings
+- [x] Manual smoke test: valid key + missing-key fallback verified
 
 ---
 
-## Phase 5 — Frontend Foundations — 0% (0 of 5)
+## Phase 4 — Backend API Routes — 100% (6 of 6)
 
-- [ ] Tailwind config + base styles + color tokens
-- [ ] src/api/ — typed fetch wrapper with error handling
-- [ ] AuthContext with localStorage persistence
-- [ ] App.tsx with react-router placeholder routes
-- [ ] Header/layout + TanStack Query provider
-
----
-
-## Phase 6 — Frontend Login + Student Dashboard — 0% (0 of 6)
-
-- [ ] LoginPage with role chooser + student picker
-- [ ] StudentDashboard fetching readiness + gaps in parallel
-- [ ] ReadinessScoreCard component (overall + per-ELQD bars)
-- [ ] SkillRadarChart component (Recharts) with student vs benchmark
-- [ ] TopGapsList component (signal + LLM rationale per gap)
-- [ ] Loading skeletons + error states + mobile (360px) verification
+- [x] main.py — FastAPI app, CORS, lifespan, /healthz
+- [x] routes/auth.py — POST /api/auth/login
+- [x] routes/student.py — GET /students, /students/{id}, /readiness, /gaps
+- [x] routes/counselor.py — GET /at-risk, /brief, POST /action
+- [x] routes/evals.py — GET /api/evals/results (handles not-run state)
+- [x] Manual verification via /docs (Swagger)
 
 ---
 
-## Phase 7 — Frontend Counselor + Evals Page — 0% (0 of 5)
+## Phase 5 — Frontend Foundations — 100% (5 of 5)
 
-- [ ] CounselorDashboard with sortable AtRiskTable
-- [ ] InterventionDetail page
-- [ ] InterventionBriefCard with "mark action taken"
-- [ ] EvalsPage fetching /api/evals/results
-- [ ] EvalsResultsViewer with pass/fail badges + "not run" empty state
+- [x] Tailwind config + base styles + color tokens
+- [x] src/api/ — typed fetch wrapper with error handling
+- [x] AuthContext with localStorage persistence
+- [x] App.tsx with react-router placeholder routes
+- [x] Header/layout + TanStack Query provider
 
 ---
 
-## Phase 8 — Evals System — 0% (0 of 5)
+## Phase 6 — Frontend Login + Student Dashboard — 100% (6 of 6)
 
-- [ ] evals/datasets/score_calibration.json (10 profiles + sensitivity pair)
-- [ ] evals/datasets/gap_relevance.json (5 profiles with manual top-3)
-- [ ] evals/datasets/early_warning.json (8 trajectories)
-- [ ] evals/run.py — runs all three, writes report.json + report.md, exit code reflects pass/fail
-- [ ] Run evals, commit results, verify in-app /evals page renders
+- [x] LoginPage with role chooser + student picker
+- [x] StudentDashboard fetching readiness + gaps in parallel
+- [x] ReadinessScoreCard component (overall + per-ELQD bars)
+- [x] SkillRadarChart component (Recharts) with student vs benchmark
+- [x] TopGapsList component (signal + LLM rationale per gap)
+- [x] Loading skeletons + error states + mobile (360px) verification
+
+---
+
+## Phase 7 — Frontend Counselor + Evals Page — 100% (5 of 5)
+
+- [x] CounselorDashboard with sortable AtRiskTable
+- [x] InterventionDetail page
+- [x] InterventionBriefCard with "mark action taken"
+- [x] EvalsPage fetching /api/evals/results
+- [x] EvalsResultsViewer with pass/fail badges + "not run" empty state
+
+---
+
+## Phase 8 — Evals System — 100% (5 of 5)
+
+- [x] evals/datasets/score_calibration.json (10 profiles + sensitivity pair)
+- [x] evals/datasets/gap_relevance.json (5 profiles with manual top-3)
+- [x] evals/datasets/early_warning.json (8 trajectories)
+- [x] evals/run.py — runs all three, writes report.json + report.md, exit code reflects pass/fail
+- [x] Run evals, commit results, verify in-app /evals page renders
 
 ---
 

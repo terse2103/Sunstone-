@@ -1,0 +1,355 @@
+{
+  "status": "pass",
+  "ran_at": "2026-05-20T10:51:45+00:00",
+  "suites": [
+    {
+      "name": "score_calibration",
+      "status": "pass",
+      "metrics": {
+        "directional_accuracy": 1.0,
+        "correct": 10.0,
+        "total": 10.0,
+        "min_accuracy": 0.9,
+        "sensitivity_delta": 1.35,
+        "sensitivity_min_delta": 1.0
+      },
+      "cases": [
+        {
+          "name": "CAL_001",
+          "passed": true,
+          "expected": "placed",
+          "actual": {
+            "overall": 87.2,
+            "bucket": "placed"
+          },
+          "note": "Strong BFSI candidate, top-quartile scores"
+        },
+        {
+          "name": "CAL_002",
+          "passed": true,
+          "expected": "placed",
+          "actual": {
+            "overall": 84.4,
+            "bucket": "placed"
+          },
+          "note": "Strong Analytics candidate"
+        },
+        {
+          "name": "CAL_003",
+          "passed": true,
+          "expected": "placed",
+          "actual": {
+            "overall": 81.0,
+            "bucket": "placed"
+          },
+          "note": "Solid Digital Marketing candidate"
+        },
+        {
+          "name": "CAL_004",
+          "passed": true,
+          "expected": "placed",
+          "actual": {
+            "overall": 76.4,
+            "bucket": "placed"
+          },
+          "note": "BFSI candidate just above the placed threshold"
+        },
+        {
+          "name": "CAL_005",
+          "passed": true,
+          "expected": "not_placed",
+          "actual": {
+            "overall": 35.8,
+            "bucket": "not_placed"
+          },
+          "note": "Clearly weak BFSI candidate"
+        },
+        {
+          "name": "CAL_006",
+          "passed": true,
+          "expected": "not_placed",
+          "actual": {
+            "overall": 41.6,
+            "bucket": "not_placed"
+          },
+          "note": "Weak Analytics candidate, mildly declining"
+        },
+        {
+          "name": "CAL_007",
+          "passed": true,
+          "expected": "not_placed",
+          "actual": {
+            "overall": 43.2,
+            "bucket": "not_placed"
+          },
+          "note": "Disengaged Digital Marketing candidate"
+        },
+        {
+          "name": "CAL_008",
+          "passed": true,
+          "expected": "not_placed",
+          "actual": {
+            "overall": 45.6,
+            "bucket": "not_placed"
+          },
+          "note": "BFSI candidate just under the not-placed threshold"
+        },
+        {
+          "name": "CAL_009",
+          "passed": true,
+          "expected": "borderline",
+          "actual": {
+            "overall": 67.8,
+            "bucket": "borderline"
+          },
+          "note": "Sensitivity pair \u2014 baseline (BFSI, mid-band)"
+        },
+        {
+          "name": "CAL_010",
+          "passed": true,
+          "expected": "borderline",
+          "actual": {
+            "overall": 69.15,
+            "bucket": "borderline"
+          },
+          "note": "Sensitivity pair \u2014 perturbed (+15 to every cycle of financial_math)"
+        },
+        {
+          "name": "sensitivity[CAL_009\u2192CAL_010]",
+          "passed": true,
+          "expected": {
+            "min_overall_delta": 1.0,
+            "perturbation": "Adds 15 to each of the 3 cycles of financial_math (BFSI Q). Q has 2 sub-skills and 0.30 weight \u2192 expected overall delta \u2248 1.35."
+          },
+          "actual": {
+            "overall_delta": 1.35
+          },
+          "note": "Adds 15 to each of the 3 cycles of financial_math (BFSI Q). Q has 2 sub-skills and 0.30 weight \u2192 expected overall delta \u2248 1.35."
+        }
+      ]
+    },
+    {
+      "name": "gap_relevance",
+      "status": "pass",
+      "metrics": {
+        "profiles_full_match": 5.0,
+        "profiles_first_correct": 5.0,
+        "profiles_total": 5.0,
+        "full_match_required": 4.0,
+        "first_correct_required": 5.0
+      },
+      "cases": [
+        {
+          "name": "GAP_001",
+          "passed": true,
+          "expected": [
+            "financial_math",
+            "quant_aptitude",
+            "banking_fundamentals"
+          ],
+          "actual": [
+            "financial_math",
+            "quant_aptitude",
+            "banking_fundamentals"
+          ],
+          "note": "BFSI student \u2014 Q dimension underwater, modest D gap. financial_math beats quant_aptitude by larger raw gap."
+        },
+        {
+          "name": "GAP_002",
+          "passed": true,
+          "expected": [
+            "data_interpretation",
+            "sql_basics",
+            "stats_fundamentals"
+          ],
+          "actual": [
+            "data_interpretation",
+            "sql_basics",
+            "stats_fundamentals"
+          ],
+          "note": "Analytics student \u2014 clearly weak in Q's data_interpretation; sql_basics and stats_fundamentals tie on priority but sql_basics wins the alphabetical tiebreak."
+        },
+        {
+          "name": "GAP_003",
+          "passed": true,
+          "expected": [
+            "copywriting",
+            "seo_fundamentals",
+            "social_media_strategy"
+          ],
+          "actual": [
+            "copywriting",
+            "seo_fundamentals",
+            "social_media_strategy"
+          ],
+          "note": "Digital Marketing \u2014 copywriting (E) leads despite 0.30 weight because the raw gap is large; D gaps follow."
+        },
+        {
+          "name": "GAP_004",
+          "passed": true,
+          "expected": [
+            "business_communication",
+            "presentation",
+            "accounting_basics"
+          ],
+          "actual": [
+            "business_communication",
+            "presentation",
+            "accounting_basics"
+          ],
+          "note": "BFSI student \u2014 E-dimension weak (business_communication and presentation tied on priority; alphabetical tiebreak picks business_communication first)."
+        },
+        {
+          "name": "GAP_005",
+          "passed": true,
+          "expected": [
+            "excel_modelling",
+            "stats_fundamentals",
+            "sql_basics"
+          ],
+          "actual": [
+            "excel_modelling",
+            "stats_fundamentals",
+            "sql_basics"
+          ],
+          "note": "Analytics student \u2014 all gaps live in D dimension; excel_modelling has the biggest raw gap."
+        }
+      ]
+    },
+    {
+      "name": "early_warning",
+      "status": "pass",
+      "metrics": {
+        "recall": 1.0,
+        "true_positives": 4.0,
+        "false_negatives": 0.0,
+        "false_positives": 0.0,
+        "false_positive_rate": 0.0,
+        "min_recall": 1.0,
+        "max_false_positives": 1.0
+      },
+      "cases": [
+        {
+          "name": "WARN_001",
+          "passed": true,
+          "expected": {
+            "at_risk": true
+          },
+          "actual": {
+            "at_risk": true,
+            "readiness": 46.6,
+            "trajectory_slope": -3.5,
+            "days_to_placement": 120,
+            "risk_level": "medium"
+          },
+          "note": "BFSI student, all subskills declining \u2014 should be flagged."
+        },
+        {
+          "name": "WARN_002",
+          "passed": true,
+          "expected": {
+            "at_risk": true
+          },
+          "actual": {
+            "at_risk": true,
+            "readiness": 52.2,
+            "trajectory_slope": -3.5,
+            "days_to_placement": 100,
+            "risk_level": "medium"
+          },
+          "note": "Analytics student trending down \u2014 slope clearly negative, readiness just under 55."
+        },
+        {
+          "name": "WARN_003",
+          "passed": true,
+          "expected": {
+            "at_risk": true
+          },
+          "actual": {
+            "at_risk": true,
+            "readiness": 46.0,
+            "trajectory_slope": 0.0,
+            "days_to_placement": 130,
+            "risk_level": "medium"
+          },
+          "note": "Digital Marketing student stuck \u2014 flat low scores, low attendance, low engagement."
+        },
+        {
+          "name": "WARN_004",
+          "passed": true,
+          "expected": {
+            "at_risk": true
+          },
+          "actual": {
+            "at_risk": true,
+            "readiness": 52.8,
+            "trajectory_slope": -2.5,
+            "days_to_placement": 60,
+            "risk_level": "medium"
+          },
+          "note": "Days-to-placement at the 60-day boundary \u2014 should still flag."
+        },
+        {
+          "name": "WARN_005",
+          "passed": true,
+          "expected": {
+            "at_risk": false
+          },
+          "actual": {
+            "at_risk": false,
+            "readiness": 49.6,
+            "trajectory_slope": 7.5,
+            "days_to_placement": 120,
+            "risk_level": "medium"
+          },
+          "note": "Low absolute readiness BUT clearly improving \u2014 positive slope should save the student from being flagged."
+        },
+        {
+          "name": "WARN_006",
+          "passed": true,
+          "expected": {
+            "at_risk": false
+          },
+          "actual": {
+            "at_risk": false,
+            "readiness": 67.4,
+            "trajectory_slope": 1.5,
+            "days_to_placement": 100,
+            "risk_level": "low"
+          },
+          "note": "Borderline-but-above-threshold student. Readiness above 55, no flag."
+        },
+        {
+          "name": "WARN_007",
+          "passed": true,
+          "expected": {
+            "at_risk": false
+          },
+          "actual": {
+            "at_risk": false,
+            "readiness": 83.8,
+            "trajectory_slope": 2.5,
+            "days_to_placement": 100,
+            "risk_level": "low"
+          },
+          "note": "Strong student well clear of the threshold."
+        },
+        {
+          "name": "WARN_008",
+          "passed": true,
+          "expected": {
+            "at_risk": false
+          },
+          "actual": {
+            "at_risk": false,
+            "readiness": 42.6,
+            "trajectory_slope": -2.5,
+            "days_to_placement": 30,
+            "risk_level": "high"
+          },
+          "note": "Weak student but days_to_placement < 60 \u2014 intervention window has closed; should NOT flag (architecture \u00a74.2 floor)."
+        }
+      ]
+    }
+  ]
+}

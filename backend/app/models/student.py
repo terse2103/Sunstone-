@@ -20,3 +20,13 @@ class Student(BaseModel):
     attendance_pct: dict[Dimension, float] = Field(default_factory=dict)
     time_on_task_hrs: dict[Dimension, float] = Field(default_factory=dict)
     recent_signals: list[str] = Field(default_factory=list)
+
+
+class StudentSummary(BaseModel):
+    """Lightweight view used by the login picker — no nested assessments."""
+
+    id: str
+    name: str
+    program: str
+    campus: str
+    career_track: str

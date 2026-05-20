@@ -61,7 +61,7 @@ The system follows a strict separation of concerns: **numerical decisions are ma
 
 ### Core principles
 
-1. **Numbers are deterministic, language is LLM-generated.** Scores, gap rankings, and at-risk flags are pure functions over student data and recruiter benchmarks — fully reproducible. The Claude API only writes explanatory text around those numbers. As a result, the three evals all test deterministic logic, not LLM behavior — making them stable and meaningful.
+1. **Numbers come from a hand-tuned linear model; language is LLM-generated.** The readiness score is a linear combination of declared signal weights (60% assessments + 20% attendance + 20% engagement) blended via track-specific dimension weights — fully reproducible. We use a hand-tuned linear model rather than a trained model because no outcome-labelled training data exists for the prototype; see [`phase-2-roadmap.md`](./phase-2-roadmap.md) for the trained-model upgrade path. The Claude API writes explanatory text *around* those numbers — gap rationales, intervention briefs, readiness narratives. As a result, the three evals all test deterministic logic, not LLM behavior — making them stable and meaningful.
 
 2. **Evals are offline + read-only at runtime.** `evals/run.py` runs golden datasets through the same `core/` modules the app uses, writes results to `evals/results/`. The app's `/evals` page just reads and renders those files. No live eval execution from the browser.
 
@@ -117,6 +117,8 @@ backend/app/
 
 The heart of the system. No network, no I/O, no LLM. Everything here is testable in isolation, and the evals exercise these modules directly.
 
+**Model type:** the scoring engine is a **hand-tuned linear model** — a weighted sum of declared signals (`0.6·assessments + 0.2·attendance + 0.2·time_on_task`) blended via per-track dimension weights. Linear models are still ML; we just declare the weights from domain knowledge instead of fitting them from data. With ~12 synthetic students and no outcome labels, a trained model would only memorize the data generator's assumptions. The trained-model swap path is documented in [`phase-2-roadmap.md`](./phase-2-roadmap.md) — same `compute_readiness()` signature, weights loaded from a fitted estimator instead of declared constants.
+
 **`benchmarks.py`**
 - Loads `benchmarks.json` once into a module-level dict
 - Exposes `get_track(name) -> TrackBenchmark`
@@ -129,6 +131,7 @@ The heart of the system. No network, no I/O, no LLM. Everything here is testable
 - `compute_readiness(student, track) -> ReadinessResult`
   - Overall = weighted sum of 4 dimension scores using track weights
   - Returns overall + per-dimension breakdown + the raw input signals (for the explainability requirement)
+  - Each `DimensionScore` carries `benchmark` — the mean of the dimension's sub-skill benchmarks — so the frontend radar chart can overlay student vs. target without a separate `/api/tracks` endpoint
 
 **`gaps.py`**
 - `compute_gaps(student, track) -> list[Gap]`
