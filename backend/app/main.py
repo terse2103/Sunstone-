@@ -65,6 +65,6 @@ app.include_router(counselor_routes.router)
 app.include_router(evals_routes.router)
 
 
-@app.get("/healthz")
+@app.get("/api/healthz", tags=["health"])
 def healthz() -> dict[str, str]:
     return {"status": "ok"}

@@ -40,7 +40,7 @@ def client():
 
 
 def test_healthz_returns_ok(client: TestClient) -> None:
-    r = client.get("/healthz")
+    r = client.get("/api/healthz")
     assert r.status_code == 200
     assert r.json() == {"status": "ok"}
 
@@ -50,7 +50,7 @@ def test_openapi_lists_all_routes(client: TestClient) -> None:
     assert r.status_code == 200
     paths = r.json()["paths"]
     expected = {
-        "/healthz",
+        "/api/healthz",
         "/api/auth/login",
         "/api/students",
         "/api/students/{student_id}",

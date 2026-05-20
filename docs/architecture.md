@@ -207,7 +207,7 @@ Routes validate input, call core + llm modules, return Pydantic models. All resp
 | GET | `/api/counselor/students/{id}/brief` | `InterventionBrief` | `at_risk.assess()` + `llm.intervention_brief()` |
 | POST | `/api/counselor/students/{id}/action` | `204` | In-memory set, lost on restart (acceptable for prototype) |
 | GET | `/api/evals/results` | latest results JSON | Reads `evals/results/report.json` from disk |
-| GET | `/healthz` | `{status: "ok"}` | Hosting health check |
+| GET | `/api/healthz` | `{status: "ok"}` | Hosting health check |
 
 ### 4.6 Request flow — student loads dashboard
 

@@ -1,4 +1,10 @@
-const RAW_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+// In production (Vercel) the backend is same-origin under /api/*, so the
+// client emits relative paths. In dev (vite serves on :5173, FastAPI on
+// :8000) we point at the local backend explicitly. Either default can be
+// overridden by VITE_API_BASE_URL — useful when running the SPA against a
+// non-local backend.
+const DEFAULT_BASE = import.meta.env.DEV ? "http://localhost:8000" : "";
+const RAW_BASE = import.meta.env.VITE_API_BASE_URL ?? DEFAULT_BASE;
 export const API_BASE_URL = RAW_BASE.replace(/\/+$/, "");
 
 export class ApiError extends Error {

@@ -41,7 +41,7 @@ pip install -r requirements.txt
 cp .env.example .env             # then fill in ANTHROPIC_API_KEY
 uvicorn app.main:app --reload
 ```
-The API boots at <http://localhost:8000>. Swagger UI at `/docs`. Health check at `/healthz`.
+The API boots at <http://localhost:8000>. Swagger UI at `/docs`. Health check at `/api/healthz`.
 
 ### Frontend
 ```bash
