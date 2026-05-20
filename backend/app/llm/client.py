@@ -314,8 +314,41 @@ def _split_nonempty_lines(text: str) -> list[str]:
     return [ln.strip() for ln in text.splitlines() if ln.strip()]
 
 
+def _split_sentences(text: str) -> list[str]:
+    """Split a paragraph into sentences on ``.``/``!``/``?`` boundaries.
+
+    Used as a fallback when the model ran multiple sentences into a single
+    newline-delimited line — Claude occasionally returns the 3-line brief as
+    one paragraph despite the prompt asking for line breaks, and we don't
+    want the UI to render that as a single bullet.
+    """
+    s = text.strip()
+    if not s:
+        return []
+    out: list[str] = []
+    cursor = 0
+    for m in _SENTENCE_END.finditer(s):
+        out.append(s[cursor : m.end() - 1].strip())
+        cursor = m.end()
+    tail = s[cursor:].strip()
+    if tail:
+        out.append(tail)
+    return [seg for seg in out if seg]
+
+
 def _truncate_to_lines(text: str, n: int) -> list[str]:
-    return _split_nonempty_lines(text)[:n]
+    """Return the first ``n`` lines. Falls back to sentence splitting when
+    the response has fewer newline-delimited lines than requested."""
+    lines = _split_nonempty_lines(text)
+    if len(lines) >= n:
+        return lines[:n]
+    out: list[str] = []
+    for ln in lines:
+        for sentence in _split_sentences(ln):
+            out.append(sentence)
+            if len(out) >= n:
+                return out
+    return out[:n]
 
 
 def _fallback_gap_rationale(gap: Gap, track_name: str) -> str:

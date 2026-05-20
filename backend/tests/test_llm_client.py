@@ -360,6 +360,27 @@ def test_intervention_brief_drops_blank_lines(monkeypatch: pytest.MonkeyPatch) -
     assert out == ["Line one.", "Line two.", "Line three."]
 
 
+def test_intervention_brief_splits_single_paragraph_into_three(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When the model returns the brief as one paragraph without newlines
+    (Claude does this occasionally), we fall back to sentence splitting so
+    the UI still gets three discrete bullets."""
+    client, sdk, _ = _client_with_mocked_sdk(monkeypatch)
+    sdk.messages.create.return_value = _llm_response(
+        "Priya is at high risk of not getting placed, and falling further behind. "
+        "She is struggling most in Quant, particularly in financial math. "
+        "Her recent assessments have scored below expectation."
+    )
+    out = client.intervention_brief(
+        at_risk=_at_risk(), student_name="P", track_name="BFSI"
+    )
+    assert len(out) == 3
+    assert out[0].startswith("Priya is at high risk")
+    assert "struggling" in out[1]
+    assert "recent assessments" in out[2]
+
+
 # --- cache isolation between callers ---------------------------------------
 
 
