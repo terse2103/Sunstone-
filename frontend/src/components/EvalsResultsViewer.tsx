@@ -13,6 +13,64 @@ const STATUS_LABEL: Record<EvalStatus, string> = {
   not_run: "Not run",
 };
 
+interface SuiteMeta {
+  title: string;
+  question: string;
+  measures: string;
+  passes: string;
+}
+
+// What each suite tests, in language a first-time viewer can follow.
+// Keyed on the suite name emitted by evals/run.py.
+const SUITE_META: Record<string, SuiteMeta> = {
+  score_calibration: {
+    title: "Score Calibration",
+    question:
+      "Does the readiness score correctly separate placed from not-placed students?",
+    measures:
+      "10 golden profiles, each labelled placed (overall score > 70), not_placed (< 50), or borderline (50–70). Plus a sensitivity pair — the same student with +15 added to every cycle of one sub-skill, where the overall score is expected to move meaningfully.",
+    passes:
+      "Directional accuracy ≥ 0.9 (≥ 9 of 10 profiles land in the correct bucket) AND the sensitivity pair shows an overall-score delta of ≥ 1.0 point.",
+  },
+  gap_relevance: {
+    title: "Gap Relevance",
+    question: "Are the top-3 priority gaps the right ones?",
+    measures:
+      "5 hand-labelled profiles. For each, the engine must return the same three sub-skill gaps a human expert would pick, with the #1 priority correct on every profile. Tied-priority cases are present too, to exercise the stable alphabetical tiebreak.",
+    passes:
+      "Top-3 set matches expected on ≥ 4 of 5 profiles AND the #1 gap matches on all 5.",
+  },
+  early_warning: {
+    title: "Early Warning",
+    question: "Are we catching at-risk students without raising false alarms?",
+    measures:
+      "8 trajectories — 4 truly at-risk (declining scores, flat or negative trajectory, ≥ 60 days to placement) and 4 negatives that each test a different exemption (improving slope, above-threshold readiness, strong overall, closed placement window). For each, the engine must agree with the human label.",
+    passes:
+      "Recall = 1.0 (every truly at-risk student is flagged) AND no more than 1 false positive across the 4 negatives.",
+  },
+};
+
+const METRIC_LABEL: Record<string, string> = {
+  directional_accuracy: "Directional accuracy",
+  correct: "Cases correct",
+  total: "Cases total",
+  min_accuracy: "Required accuracy",
+  sensitivity_delta: "Sensitivity Δ overall",
+  sensitivity_min_delta: "Required sensitivity Δ",
+  profiles_full_match: "Profiles fully matched",
+  profiles_first_correct: "Profiles with #1 correct",
+  profiles_total: "Profiles total",
+  full_match_required: "Full matches required",
+  first_correct_required: "#1 matches required",
+  recall: "Recall",
+  true_positives: "True positives",
+  false_negatives: "False negatives",
+  false_positives: "False positives",
+  false_positive_rate: "False-positive rate",
+  min_recall: "Required recall",
+  max_false_positives: "Max false positives allowed",
+};
+
 interface Props {
   report: EvalsReport;
 }
@@ -59,39 +117,55 @@ export function EvalsResultsViewer({ report }: Props) {
 
 function SuiteRow({ suite }: { suite: EvalResult }) {
   const [open, setOpen] = useState(suite.status === "fail");
+  const meta = SUITE_META[suite.name];
   const metricEntries = Object.entries(suite.metrics);
+  const displayTitle = meta?.title ?? humanize(suite.name);
 
   return (
     <li className="overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-sm">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-ink-50 md:px-5"
+        className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left hover:bg-ink-50 md:px-5"
         aria-expanded={open}
       >
-        <span className="flex flex-wrap items-center gap-2">
-          <span
-            className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${STATUS_STYLE[suite.status]}`}
-          >
-            {STATUS_LABEL[suite.status]}
+        <span className="flex flex-1 flex-col gap-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span
+              className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${STATUS_STYLE[suite.status]}`}
+            >
+              {STATUS_LABEL[suite.status]}
+            </span>
+            <span className="font-medium text-ink-900">{displayTitle}</span>
+            <span className="text-xs text-ink-500">
+              {suite.cases.length} case{suite.cases.length === 1 ? "" : "s"}
+            </span>
           </span>
-          <span className="font-medium text-ink-900">{suite.name}</span>
-          <span className="text-xs text-ink-500">
-            {suite.cases.length} case{suite.cases.length === 1 ? "" : "s"}
-          </span>
+          {meta ? (
+            <span className="text-xs text-ink-600 md:text-sm">
+              {meta.question}
+            </span>
+          ) : null}
         </span>
-        <span aria-hidden className="text-ink-400">
+        <span aria-hidden className="pt-0.5 text-ink-400">
           {open ? "▾" : "▸"}
         </span>
       </button>
 
       {open ? (
         <div className="border-t border-ink-100 bg-ink-50/40 px-4 py-3 md:px-5">
+          {meta ? (
+            <div className="mb-3 grid gap-3 sm:grid-cols-2">
+              <ExplainerBlock label="What this measures" body={meta.measures} />
+              <ExplainerBlock label="Pass criteria" body={meta.passes} />
+            </div>
+          ) : null}
+
           {metricEntries.length > 0 ? (
             <dl className="mb-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
               {metricEntries.map(([k, v]) => (
                 <div key={k} className="rounded-md bg-white p-2 ring-1 ring-ink-200">
-                  <dt className="text-ink-500">{k}</dt>
+                  <dt className="text-ink-500">{METRIC_LABEL[k] ?? humanize(k)}</dt>
                   <dd className="font-semibold tabular-nums text-ink-900">
                     {formatMetric(v)}
                   </dd>
@@ -143,6 +217,17 @@ function SuiteRow({ suite }: { suite: EvalResult }) {
   );
 }
 
+function ExplainerBlock({ label, body }: { label: string; body: string }) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-500">
+        {label}
+      </p>
+      <p className="mt-1 text-sm text-ink-700">{body}</p>
+    </div>
+  );
+}
+
 function CodeBlock({ label, value }: { label: string; value: unknown }) {
   if (value === undefined || value === null) return null;
   const rendered =
@@ -160,4 +245,10 @@ function CodeBlock({ label, value }: { label: string; value: unknown }) {
 function formatMetric(v: number): string {
   if (Number.isInteger(v)) return String(v);
   return v.toFixed(2);
+}
+
+function humanize(name: string): string {
+  return name
+    .replace(/_/g, " ")
+    .replace(/^\w/, (c) => c.toUpperCase());
 }
