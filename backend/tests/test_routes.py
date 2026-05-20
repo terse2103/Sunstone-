@@ -46,7 +46,7 @@ def test_healthz_returns_ok(client: TestClient) -> None:
 
 
 def test_openapi_lists_all_routes(client: TestClient) -> None:
-    r = client.get("/openapi.json")
+    r = client.get("/api/openapi.json")
     assert r.status_code == 200
     paths = r.json()["paths"]
     expected = {

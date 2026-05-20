@@ -42,23 +42,23 @@ Tick `[x]` as you finish each step. Claude maintains this file: whenever impleme
 The entire project (frontend SPA + FastAPI backend) ships as one Vercel deployment — see `architecture.md` §8.1.
 
 ### 3.1 Vercel account + project
-- [ ] Create a Vercel account at `https://vercel.com`
-- [ ] **New Project → Import from GitHub** → pick this repo
-- [ ] Leave **Root Directory** as the repo root (do *not* set it to `frontend/`) — Vercel needs to see both `frontend/` and `api/` from the root
-- [ ] Confirm Vercel auto-detects Vite (frontend) and Python (api/) builders from the committed `vercel.json`
+- [x] Create a Vercel account at `https://vercel.com`
+- [x] **New Project → Import from GitHub** → pick this repo
+- [x] Leave **Root Directory** as the repo root (do *not* set it to `frontend/`) — Vercel needs to see both `frontend/` and `api/` from the root
+- [x] Confirm Vercel auto-detects Vite (frontend) and Python (api/) builders from the committed `vercel.json`
 
 ### 3.2 Env vars on Vercel
-- [ ] Set `ANTHROPIC_API_KEY=<the key from §1.1>` in **Project Settings → Environment Variables**
-- [ ] *(Optional)* leave `VITE_API_BASE_URL` unset — the frontend defaults to relative `/api/*` paths under same-origin
-- [ ] **No `ALLOWED_ORIGINS` needed** — frontend and backend share an origin in production, so CORS is bypassed (still required for local dev; see `backend/.env.example`)
+- [x] Set `ANTHROPIC_API_KEY=<the key from §1.1>` in **Project Settings → Environment Variables**
+- [x] *(Optional)* leave `VITE_API_BASE_URL` unset — the frontend defaults to relative `/api/*` paths under same-origin
+- [x] **No `ALLOWED_ORIGINS` needed** — frontend and backend share an origin in production, so CORS is bypassed (still required for local dev; see `backend/.env.example`)
 
 ### 3.3 First deploy + verification
-- [ ] Trigger the first deploy (Vercel does this automatically on import)
-- [ ] Note the live URL (e.g. `https://placementiq.vercel.app`)
-- [ ] Verify `https://<live-url>/api/healthz` returns `{"status":"ok"}`
-- [ ] Verify `https://<live-url>/api/evals/results` returns the committed `report.json` (status `pass`, not `not_run`)
-- [ ] Walk the full demo flow on the live URL (Student dashboard → Counselor flow → Evals page) on both desktop and mobile (360px)
-- [ ] Capture the cold-start latency (~1–2s expected for the first request after idle) for the README troubleshooting section
+- [x] Trigger the first deploy (Vercel does this automatically on import)
+- [x] Note the live URL — <https://sunstone-amber.vercel.app/>
+- [x] Verify `https://<live-url>/api/healthz` returns `{"status":"ok"}` *(Claude verified live: 200 OK in ~900ms cold / ~335ms warm.)*
+- [x] Verify `https://<live-url>/api/evals/results` returns the committed `report.json` (status `pass`, not `not_run`) *(Claude verified: status `pass`, all 3 suites green.)*
+- [x] Walk the full demo flow on the live URL (Student dashboard → Counselor flow → Evals page) on both desktop and mobile (360px)
+- [x] Capture the cold-start latency (~1–2s expected for the first request after idle) for the README troubleshooting section *(Observed ~900ms cold, ~335ms warm — captured in README.)*
 
 ---
 

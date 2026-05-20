@@ -1,6 +1,6 @@
 # PlacementIQ — Implementation Tracker
 
-**Overall Progress: 92%** (55 of 60 tasks)
+**Overall Progress: 97%** (58 of 60 tasks)
 **Last updated:** 2026-05-20
 
 Update protocol: see [`Rules.md`](./Rules.md). Mark `[x]` immediately on completion, update the overall and per-phase percentages, and bump the "Last updated" date.
@@ -58,7 +58,7 @@ Update protocol: see [`Rules.md`](./Rules.md). Mark `[x]` immediately on complet
 - [x] routes/student.py — GET /students, /students/{id}, /readiness, /gaps
 - [x] routes/counselor.py — GET /at-risk, /brief, POST /action
 - [x] routes/evals.py — GET /api/evals/results (handles not-run state)
-- [x] Manual verification via /docs (Swagger)
+- [x] Manual verification via /api/docs (Swagger)
 
 ---
 
@@ -114,10 +114,10 @@ Update protocol: see [`Rules.md`](./Rules.md). Mark `[x]` immediately on complet
 
 ---
 
-## Phase 10 — Polish, Docs, Demo — 0% (0 of 5)
+## Phase 10 — Polish, Docs, Demo — 60% (3 of 5)
 
-- [ ] README finalized (setup, URLs, screenshots, env vars, troubleshooting)
-- [ ] docs/phase-2-roadmap.md (Cluster B connection)
-- [ ] Demo walkthrough video recorded
-- [ ] Final docs pass (architecture, edge cases, plan, rules, todo)
-- [ ] Cleanup pass (dead code, unused deps, leftover TODOs)
+- [x] README finalized (setup, live URLs, Swagger link, env vars, troubleshooting, privacy + roadmap pointer)
+- [x] docs/phase-2-roadmap.md (Cluster B connection) *(written during Phase 1; reviewed against final state in Phase 10)*
+- [ ] Demo walkthrough video recorded *(user action — Pillar A+B + Pillar C + Evals page)*
+- [x] Final docs pass (architecture, edge cases, plan, rules, todo) — Swagger references updated to /api/docs, no Render/Fly/Dockerfile leftovers, no `/healthz` (root) leftovers
+- [ ] Cleanup pass (dead code, unused deps, leftover TODOs) *(partially done — deleted scaffold frontend/README.md + unreferenced public/icons.svg; screenshots in `docs/screenshots/` still pending — user action)*

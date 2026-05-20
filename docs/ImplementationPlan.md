@@ -103,10 +103,10 @@
 - `app/routes/student.py` — `GET /api/students`, `/api/students/{id}`, `/readiness`, `/gaps`
 - `app/routes/counselor.py` — `GET /api/counselor/at-risk`, `/students/{id}/brief`, `POST /students/{id}/action` (in-memory set)
 - `app/routes/evals.py` — `GET /api/evals/results` (returns `{status: "not_run"}` if file missing — §8.1)
-- Manual verification via FastAPI's auto-generated `/docs`
+- Manual verification via FastAPI's auto-generated `/api/docs`
 
 **Verification:**
-- All endpoints visible in `/docs`
+- All endpoints visible in `/api/docs`
 - `curl /api/students/STU_001/readiness` returns valid ReadinessResult
 - `curl /api/students/STU_001/gaps` returns gaps with LLM rationale (or fallback if key absent)
 - `/api/evals/results` returns `{status: "not_run"}`

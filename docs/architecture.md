@@ -194,7 +194,7 @@ Thin and well-bounded. Only two LLM tasks exist in the system.
 
 ### 4.5 `routes/` — thin HTTP layer
 
-Routes validate input, call core + llm modules, return Pydantic models. All response shapes are typed and appear in FastAPI's auto-generated OpenAPI docs at `/docs`.
+Routes validate input, call core + llm modules, return Pydantic models. All response shapes are typed and appear in FastAPI's auto-generated OpenAPI docs at `/api/docs`.
 
 | Method | Path | Returns | Composition |
 |---|---|---|---|
@@ -300,7 +300,7 @@ See [Career Track Benchmarks](#43-career-track-benchmarks).
 
 ### 6.3 Pydantic models (`models/`)
 
-`Student`, `Assessment`, `ReadinessResult`, `DimensionScore`, `Gap`, `AtRiskAssessment`, `InterventionBrief`, `EvalResult`. All typed and surfaced in the OpenAPI schema at `/docs`.
+`Student`, `Assessment`, `ReadinessResult`, `DimensionScore`, `Gap`, `AtRiskAssessment`, `InterventionBrief`, `EvalResult`. All typed and surfaced in the OpenAPI schema at `/api/docs`.
 
 ---
 

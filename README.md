@@ -15,6 +15,7 @@ See [`docs/architecture.md`](./docs/architecture.md) for the full system design.
 The whole project (SPA + FastAPI backend) ships as a single Vercel deployment. Frontend at `/`, backend at `/api/*` — same origin, no CORS in production.
 
 - App: <https://sunstone-amber.vercel.app/>
+- Swagger UI: <https://sunstone-amber.vercel.app/api/docs>
 - Health: <https://sunstone-amber.vercel.app/api/healthz>
 - Eval results: <https://sunstone-amber.vercel.app/api/evals/results>
 
@@ -39,7 +40,7 @@ pip install -r requirements.txt
 cp .env.example .env             # then fill in ANTHROPIC_API_KEY
 uvicorn app.main:app --reload
 ```
-The API boots at <http://localhost:8000>. Swagger UI at `/docs`. Health check at `/api/healthz`.
+The API boots at <http://localhost:8000>. Swagger UI at `/api/docs`. Health check at `/api/healthz`.
 
 ### Frontend
 ```bash
@@ -86,3 +87,17 @@ vercel.json Routing + build config for the unified deploy
 - **CORS error in browser console (local dev)** — confirm `ALLOWED_ORIGINS` on the backend includes `http://localhost:5173`. Not relevant on Vercel — production is same-origin.
 - **Slow first request after idle** — Vercel cold-starts the Python function in ~1–2s; subsequent requests are warm.
 - **Empty / templated LLM output** — `ANTHROPIC_API_KEY` is unset, invalid, or rate-limited; the backend intentionally falls back to a deterministic string.
+
+---
+
+## Data, privacy, and safety
+
+- All student records in `backend/app/data/students.json` are **synthetic** — names, scores, and trajectories are hand-tuned for a balanced demo. No real Sunstone student data is in this repo.
+- The deployed app sends a small amount of context (sub-skill name, gap size, JD frequency, recent signals) to the Anthropic API to generate gap rationales and intervention briefs. Anthropic's data handling and logging policies apply.
+- The demo URL is publicly accessible — synthetic data only, no PII at risk.
+
+---
+
+## Roadmap
+
+See [`docs/phase-2-roadmap.md`](./docs/phase-2-roadmap.md) for the trained-model upgrade path, persistent storage for counselor actions, Cluster B features (adaptive content sequencing, AI doubt resolution), and production-grade plumbing.

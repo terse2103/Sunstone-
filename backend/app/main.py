@@ -49,7 +49,12 @@ async def lifespan(app: FastAPI):
     # Nothing to tear down — seed is in-memory, the SDK client closes on GC.
 
 
-app = FastAPI(title="PlacementIQ API", lifespan=lifespan)
+app = FastAPI(
+    title="PlacementIQ API",
+    lifespan=lifespan,
+    docs_url="/api/docs",
+    openapi_url="/api/openapi.json",
+)
 
 app.add_middleware(
     CORSMiddleware,
