@@ -14,13 +14,11 @@ See [`docs/architecture.md`](./docs/architecture.md) for the full system design.
 
 The whole project (SPA + FastAPI backend) ships as a single Vercel deployment. Frontend at `/`, backend at `/api/*` — same origin, no CORS in production.
 
-_Live URL will be filled in during Phase 9._
+- App: <https://sunstone-amber.vercel.app/>
+- Health: <https://sunstone-amber.vercel.app/api/healthz>
+- Eval results: <https://sunstone-amber.vercel.app/api/evals/results>
 
-- App: _TBD_
-- Swagger: _TBD_/api/docs
-- Health: _TBD_/api/healthz
-
-> First request after idle may be slow (~1–2s) while the Vercel Python function cold-starts.
+> Observed latency: cold start ~900 ms (Vercel Python function init + FastAPI lifespan + `seed.load()`), warm ~335 ms steady. First request after idle is the slow one — subsequent calls are fast.
 
 ---
 

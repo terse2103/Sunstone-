@@ -1,6 +1,6 @@
 # PlacementIQ — Implementation Tracker
 
-**Overall Progress: 88%** (53 of 60 tasks)
+**Overall Progress: 92%** (55 of 60 tasks)
 **Last updated:** 2026-05-20
 
 Update protocol: see [`Rules.md`](./Rules.md). Mark `[x]` immediately on completion, update the overall and per-phase percentages, and bump the "Last updated" date.
@@ -103,14 +103,14 @@ Update protocol: see [`Rules.md`](./Rules.md). Mark `[x]` immediately on complet
 
 ---
 
-## Phase 9 — Deployment (Vercel, single project) — 67% (4 of 6)
+## Phase 9 — Deployment (Vercel, single project) — 100% (6 of 6)
 
 - [x] api/index.py — Vercel Python function entry that re-exports app.main:app
-- [x] vercel.json — Vite build, Python runtime, SPA rewrite, includeFiles for seed + evals report
+- [x] vercel.json — explicit builds + routes (static-build for SPA, @vercel/python for api/index.py, /assets remapped under /frontend prefix, SPA fallback to index.html)
 - [x] Root requirements.txt (or symlink) so Vercel's Python builder picks up backend deps
 - [x] Switch frontend default to relative /api/* (VITE_API_BASE_URL="" in prod); keep localhost:8000 for dev
-- [ ] Create Vercel project, set ANTHROPIC_API_KEY in env-vars UI, deploy
-- [ ] Verify /api/healthz + /api/evals/results + full demo on live URL; capture cold-start in README
+- [x] Vercel project created, ANTHROPIC_API_KEY set, deployed to https://sunstone-amber.vercel.app/
+- [x] Verified /api/healthz + /api/evals/results + /api/students + LLM-backed /api/gaps on live URL; cold-start ~900ms, warm ~335ms — captured in README
 
 ---
 
