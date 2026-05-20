@@ -1,6 +1,6 @@
 # PlacementIQ — Implementation Tracker
 
-**Overall Progress: 83%** (49 of 59 tasks)
+**Overall Progress: 82%** (49 of 60 tasks)
 **Last updated:** 2026-05-20
 
 Update protocol: see [`Rules.md`](./Rules.md). Mark `[x]` immediately on completion, update the overall and per-phase percentages, and bump the "Last updated" date.
@@ -103,13 +103,14 @@ Update protocol: see [`Rules.md`](./Rules.md). Mark `[x]` immediately on complet
 
 ---
 
-## Phase 9 — Deployment — 0% (0 of 5)
+## Phase 9 — Deployment (Vercel, single project) — 0% (0 of 6)
 
-- [ ] Backend Dockerfile
-- [ ] Deploy backend to Render or Fly.io with env vars
-- [ ] Deploy frontend to Vercel with VITE_API_BASE_URL
-- [ ] Verify CORS + /healthz + full demo flow on live URLs
-- [ ] Document URLs + cold-start note in README
+- [ ] api/index.py — Vercel Python function entry that re-exports app.main:app
+- [ ] vercel.json — Vite build, Python runtime, SPA rewrite, includeFiles for seed + evals report
+- [ ] Root requirements.txt (or symlink) so Vercel's Python builder picks up backend deps
+- [ ] Switch frontend default to relative /api/* (VITE_API_BASE_URL="" in prod); keep localhost:8000 for dev
+- [ ] Create Vercel project, set ANTHROPIC_API_KEY in env-vars UI, deploy
+- [ ] Verify /api/healthz + /api/evals/results + full demo on live URL; capture cold-start in README
 
 ---
 

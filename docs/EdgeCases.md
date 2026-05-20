@@ -174,19 +174,20 @@ A student has fewer than 3 assessment cycles for a sub-skill.
 
 ## 9. Deployment
 
-### 9.1 Render free tier sleeps after 15min idle
-- **Expected:** Cold-start latency (~30s) documented in README. Consider always-on for demo day.
+### 9.1 Vercel Python function cold start
+- **Expected:** First request after idle takes ~1–2s while the Python runtime warms up. Documented in README. Subsequent calls are warm. Hobby plan also caps single-invocation duration at 10s — the LLM client's 8s timeout fits, and parallel gap rationales run via `asyncio.gather`.
 
-### 9.2 CORS misconfiguration
+### 9.2 CORS in local dev only
 - **Module:** `main.py`
-- **Expected:** `ALLOWED_ORIGINS` env var explicitly lists frontend domain(s). README has a CORS troubleshooting note.
+- **Expected:** Production is same-origin (frontend `/` and backend `/api/*` on one Vercel domain) so no CORS allow-list is needed. The middleware still reads `ALLOWED_ORIGINS` for local dev (frontend `:5173` → backend `:8000`); default value covers that case.
 
-### 9.3 Missing env var on backend
-- **Module:** `main.py` startup
-- **Expected:** Fail fast at boot with clear log; `/healthz` returns 503.
+### 9.3 Missing `ANTHROPIC_API_KEY` on Vercel
+- **Module:** `llm/client.py`
+- **Expected:** App boots fine — the LLM wrapper returns deterministic fallback strings (EdgeCases §5.1). No 500s; the demo just shows the templated rationale until the key is added in the Vercel env-vars UI.
 
-### 9.4 Mixed-content (HTTPS FE, HTTP BE)
-- **Expected:** Backend must be HTTPS (Render/Fly provide this by default).
+### 9.4 Function bundle is missing the seed / evals report
+- **Module:** `vercel.json` build config
+- **Expected:** `includeFiles` covers `backend/app/data/**` (seed loader) and `evals/results/report.json` (read by `/api/evals/results`). If absent, seed validation fails fast at cold-start (EdgeCases §1.3 / §2.2) and the evals route falls back to `{ "status": "not_run" }` (EdgeCases §8.1).
 
 ---
 
@@ -207,6 +208,7 @@ A student has fewer than 3 assessment cycles for a sub-skill.
 
 ### 11.1 Backend restart loses counselor actions
 - **Expected:** Documented behavior. UI does not promise persistence. Phase 2 work to add DB.
+- **Vercel note:** on the production deploy the backend runs as a serverless function, so actions can vanish per-invocation, not just per-restart. The "marked" pill is best-effort UI affordance until the Phase 2 DB lands.
 
 ### 11.2 LLM cache shared across viewers
 - **Expected:** Acceptable. Cache key is `(function, student_id, scores_hash)` — two viewers of the same student see the same brief, which is correct.

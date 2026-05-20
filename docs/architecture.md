@@ -79,8 +79,7 @@ The system follows a strict separation of concerns: **numerical decisions are ma
 | Charts | Recharts | Lightweight radar chart, mobile-friendly, declarative React API |
 | State (FE) | TanStack Query | Cache + revalidate API responses; fits read-heavy dashboard well |
 | Data | JSON seed → in-memory dicts | Stateless prototype per spec; no DB |
-| Frontend hosting | Vercel | Free tier, GitHub-integrated auto-deploy |
-| Backend hosting | Render or Fly.io | Free tier, env vars for API key, simple FastAPI container deploy |
+| Hosting | Vercel (single project) | Frontend served as static SPA; backend runs as a Python serverless function under `/api/*`. Same-origin → no CORS in production, no separate backend host to manage, one URL to share. |
 
 ---
 
@@ -344,37 +343,61 @@ The frontend fetches `/api/evals/results`, which reads `evals/results/report.jso
 
 ### 8.1 Topology
 
+The entire project ships as a single Vercel deployment. Static assets serve the React SPA at `/`; a Python serverless function exposes the FastAPI app under `/api/*`. Frontend → backend calls are same-origin, so production needs no CORS allow-list.
+
 ```
-Browser ──► Vercel (React SPA, static)
-              │
-              └─ HTTPS ──► Render / Fly.io (FastAPI container)
-                              │
-                              └─ HTTPS ──► api.anthropic.com
+                ┌──────────────────────────────────────────┐
+                │            Vercel project                 │
+                │                                            │
+Browser ───────►│   /          → static SPA (dist/)         │
+                │   /api/*     → Python serverless function │
+                │                (FastAPI app)               │
+                └────────────────────┬─────────────────────┘
+                                     │
+                                     └─ HTTPS ──► api.anthropic.com
 ```
 
-### 8.2 Frontend (Vercel)
+### 8.2 Project layout for the deploy
 
-- Connected to GitHub repo, auto-deploys on push to `main`
-- Env vars: `VITE_API_BASE_URL` → backend URL
-- Build: `npm run build`; output: `dist/`
+```
+placementiq/
+├── api/
+│   └── index.py          # Vercel-convention entry — re-exports `app.main:app`
+├── backend/              # Python package imported by api/index.py
+├── frontend/             # Vite SPA, built to frontend/dist/
+├── evals/                # results/report.json shipped with the function
+└── vercel.json           # routing + build config
+```
 
-### 8.3 Backend (Render or Fly.io)
+`vercel.json` declares two things:
+1. **Build:** the Vite frontend builds to `frontend/dist/` (Vercel auto-detects from `frontend/package.json`); the Python function picks up `api/index.py` automatically.
+2. **Rewrites:** all non-`/api/*` paths fall through to `index.html` so React Router owns client-side routing.
 
-- `Dockerfile` in repo; container runs `uvicorn app.main:app`
-- Env vars: `ANTHROPIC_API_KEY`, `ALLOWED_ORIGINS` (comma-separated, includes Vercel domain)
-- CORS middleware in `main.py` reads `ALLOWED_ORIGINS`
-- Health check: `GET /healthz`
+### 8.3 Backend (Vercel Python serverless function)
 
-### 8.4 Secrets
+- **Entry point:** `api/index.py` does `from app.main import app as app` — Vercel's Python runtime detects the ASGI `app` and serves it
+- **Bundling:** `requirements.txt` at the project root (or symlinked) lists `fastapi`, `pydantic`, `anthropic`, `python-dotenv`. The function ships with `backend/app/**` + `evals/results/report.json` so the eval-results route can read its file
+- **Env vars:** `ANTHROPIC_API_KEY` only — no `ALLOWED_ORIGINS` needed in production because same-origin. The CORS middleware still reads `ALLOWED_ORIGINS` to keep local dev (frontend on `:5173`, backend on `:8000`) working
+- **Cold start:** Python functions cold-start in ~1–2s on Vercel; subsequent invocations are warm
+- **Statelessness:** each invocation may hit a fresh container. The in-memory counselor-actions set is now lost per-invocation (not just per-restart) — see `EdgeCases.md` §11.1; this is documented behavior until the Phase 2 DB lands
+- **Function duration:** Vercel Hobby caps single invocations at 10s; the LLM client's default 8s timeout fits, but parallel `gap_rationale` calls per `/api/students/{id}/gaps` are concurrent (not sequential) for headroom
+- **Health check:** `GET /api/healthz` (mounted under `/api/*` like every other route)
+
+### 8.4 Frontend (Vercel static)
+
+- Vite builds to `frontend/dist/`; Vercel serves those files at `/`
+- `VITE_API_BASE_URL` defaults to an empty string in production so the API client emits relative `/api/*` paths (same-origin). Locally it points to `http://localhost:8000`
+- React Router owns client-side routing; Vercel rewrites all unknown paths to `index.html`
+
+### 8.5 Secrets
 
 - `.env.example` committed (no secrets, lists required variables)
 - `.env` gitignored
-- Production secrets live only in platform env var UI
+- Production secrets live only in the Vercel project's env-vars UI
 
-### 8.5 Cost (rough)
+### 8.6 Cost (rough)
 
-- Vercel: free tier
-- Render: free tier (sleeps after 15min idle) or $7/mo for always-on
+- Vercel: free Hobby tier (single project, frontend + Python serverless function in the same deploy)
 - Anthropic: usage-based — gap rationale ≈ $0.001, intervention brief ≈ $0.002 per call, aggressively cached
 
 ---
@@ -394,9 +417,9 @@ Browser ──► Vercel (React SPA, static)
 |---|---|---|
 | FastAPI + React (vs. Streamlit) | Mobile-first responsive UI, polished demo, clean separation of concerns | Two stacks to manage, more boilerplate |
 | Live LLM (vs. cached pre-generated) | Demo feels alive, regenerates on data change | API key required at runtime, network dependency |
-| Hosted demo (vs. local-only) | Reviewer clicks a link, no setup | Deployment work + backend hosting cost |
+| Same-origin Vercel deploy (vs. split frontend/backend hosts) | One URL, no CORS in prod, no second platform to manage, no Dockerfile | Backend now runs as a serverless function — counselor actions can vanish per-invocation, not just per-restart (§11.1) |
 | Hardcoded benchmarks (vs. learned from data) | Predictable, explainable, no training data needed | Won't generalize to new tracks without manual configuration |
-| In-memory data (vs. DB) | Zero infra, fast | Counselor actions are lost on restart |
+| In-memory data (vs. DB) | Zero infra, fast | Counselor actions are lost on restart — and on Vercel, on any cold container too |
 | Synthetic data (vs. real Sunstone) | No privacy or access concerns | Eval metrics are only as meaningful as the synthetic profiles |
 
 ### 9.3 Explicitly out of scope (Phase 2)
@@ -420,6 +443,9 @@ placementiq/
 │   ├── 03 synthesis opportunity mapping.md
 │   ├── 04 problem statement.md
 │   └── architecture.md            ← this file
+├── api/
+│   └── index.py                   # Vercel Python function entry — re-exports app.main:app
+├── vercel.json                    # routes /api/* to the function, falls back to index.html
 ├── backend/
 │   ├── app/
 │   │   ├── main.py
@@ -443,7 +469,6 @@ placementiq/
 │   │   └── models/
 │   ├── tests/
 │   ├── requirements.txt
-│   ├── Dockerfile
 │   └── .env.example
 ├── frontend/
 │   ├── src/

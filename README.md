@@ -12,13 +12,15 @@ See [`docs/architecture.md`](./docs/architecture.md) for the full system design.
 
 ## Demo
 
-_Live URLs will be filled in during Phase 9._
+The whole project (SPA + FastAPI backend) ships as a single Vercel deployment. Frontend at `/`, backend at `/api/*` — same origin, no CORS in production.
 
-- Frontend: _TBD_
-- Backend (Swagger): _TBD_
-- Backend health: _TBD_
+_Live URL will be filled in during Phase 9._
 
-> First request after idle may be slow due to free-tier cold start (~30s).
+- App: _TBD_
+- Swagger: _TBD_/api/docs
+- Health: _TBD_/api/healthz
+
+> First request after idle may be slow (~1–2s) while the Vercel Python function cold-starts.
 
 ---
 
@@ -62,25 +64,27 @@ Writes `evals/results/report.json` + `report.md`. Exits non-zero if any eval fai
 
 | Variable | Where | Purpose |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | backend | Live LLM rationale + intervention briefs. Optional — fallback strings used if missing. |
-| `ALLOWED_ORIGINS` | backend | Comma-separated CORS allow-list. Default: `http://localhost:5173` |
-| `VITE_API_BASE_URL` | frontend | Backend URL. Default: `http://localhost:8000` |
+| `ANTHROPIC_API_KEY` | backend (Vercel + local) | Live LLM rationale + intervention briefs. Optional — fallback strings used if missing. |
+| `ALLOWED_ORIGINS` | backend (local dev only) | Comma-separated CORS allow-list. Default: `http://localhost:5173`. Not needed on Vercel — production is same-origin. |
+| `VITE_API_BASE_URL` | frontend | Backend URL. Default: `http://localhost:8000` for local dev; leave empty on Vercel so the client uses relative `/api/*` paths. |
 
 ---
 
 ## Repo layout
 
 ```
+api/        Vercel Python function entry — re-exports app.main:app
 backend/    FastAPI app (routes, core engine, LLM layer, seed data)
 frontend/   Vite + React + TypeScript SPA
 evals/      Golden datasets, runner, committed results
 docs/       Architecture, implementation plan, edge cases, rules
+vercel.json Routing + build config for the unified deploy
 ```
 
 ---
 
 ## Troubleshooting
 
-- **CORS error in browser console** — confirm `ALLOWED_ORIGINS` on the backend includes the frontend URL exactly (no trailing slash).
-- **Backend cold start** — free-tier hosting sleeps after idle; first request after sleep takes ~30s.
+- **CORS error in browser console (local dev)** — confirm `ALLOWED_ORIGINS` on the backend includes `http://localhost:5173`. Not relevant on Vercel — production is same-origin.
+- **Slow first request after idle** — Vercel cold-starts the Python function in ~1–2s; subsequent requests are warm.
 - **Empty / templated LLM output** — `ANTHROPIC_API_KEY` is unset, invalid, or rate-limited; the backend intentionally falls back to a deterministic string.

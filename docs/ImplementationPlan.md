@@ -200,21 +200,23 @@
 
 ## Phase 9 — Deployment
 
-**Goal:** Live demo URLs working end-to-end.
+**Goal:** A single Vercel deployment serving the SPA at `/` and the FastAPI backend at `/api/*`. See `architecture.md` §8 for the topology.
 
 **Tasks:**
-- Backend `Dockerfile` (`python:3.11-slim`, install deps, run `uvicorn app.main:app --host 0.0.0.0 --port $PORT`)
-- Deploy backend to Render or Fly.io; set `ANTHROPIC_API_KEY` and `ALLOWED_ORIGINS` env vars
-- Deploy frontend to Vercel from GitHub repo; set `VITE_API_BASE_URL` to live backend URL
-- Verify CORS, `/healthz`, and full demo flow on live URLs
-- Document the URLs + first-request cold-start note in README
+- `api/index.py` — Vercel Python function entry; does `from app.main import app as app` and adds `backend/` to `sys.path` so the package resolves
+- `vercel.json` — Vite build for the frontend, Python runtime for `api/index.py`, rewrite `/(.*)` → `/index.html` for client-side routing, and `includeFiles` for the seed JSON + `evals/results/report.json`
+- Root `requirements.txt` (or symlink to `backend/requirements.txt`) so Vercel's Python builder installs FastAPI + pydantic + anthropic
+- Adjust the API client default: production `VITE_API_BASE_URL=""` so calls go to same-origin `/api/*`; local dev keeps `http://localhost:8000`
+- Create the Vercel project from GitHub; set `ANTHROPIC_API_KEY` in the Vercel env-vars UI (no `ALLOWED_ORIGINS` needed in prod — same-origin)
+- Verify `/api/healthz`, `/api/evals/results` (reads the committed report), and the full demo flow on the live URL
+- Document the live URL + cold-start expectation in README
 
 **Verification:**
-- End-to-end demo on live URL works
-- `/docs` (Swagger) accessible from backend URL
-- Cold-start latency documented
+- End-to-end demo on the live URL works (Student dashboard, Counselor flow, Evals page)
+- `/api/docs` (Swagger) accessible
+- Cold-start latency captured for the README
 
-**Edge cases:** §9.1–9.4
+**Edge cases:** §9.1–9.4, §11.1 (counselor actions now lost per-invocation)
 **Effort:** ~3 hours.
 
 ---

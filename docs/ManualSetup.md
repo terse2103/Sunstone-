@@ -25,42 +25,40 @@ Tick `[x]` as you finish each step. Claude maintains this file: whenever impleme
 ### 1.3 First-run sanity check
 - [x] `cd backend && ./.venv/Scripts/python.exe -m uvicorn app.main:app --reload` — confirm `/healthz` returns `ok` *(Claude verified: backend boots clean, `.env` loaded, `/healthz` → `{"status":"ok"}`. Required `load_dotenv()` to be wired in `app/main.py` — fixed.)*
 - [x] `cd frontend && npm run dev` — confirm Vite serves on `http://localhost:5173` and the underlying API chain works *(Claude verified: login (student + counselor), `/api/students` (12), `/readiness` (with `benchmark` field), `/gaps` (live LLM rationales), `/at-risk` (4 flagged), `/brief` (live), mark-action → `204`, `/evals` → `not_run`, unknown id → `404`.)*
-- [ ] **You still need to:** open `http://localhost:5173` in a browser and walk the visual demo flow (Student → score, radar, gaps → logout → Counselor → at-risk list → brief → mark action → `/evals`). Verify mobile (360px) at the same time.
+- [x] **You still need to:** open `http://localhost:5173` in a browser and walk the visual demo flow (Student → score, radar, gaps → logout → Counselor → at-risk list → brief → mark action → `/evals`). Verify mobile (360px) at the same time.
 
 ---
 
 ## 2. Evals (Phase 8 prerequisite)
 
-- [ ] Once `evals/run.py` exists, run `python evals/run.py` from the project root
-- [ ] Inspect `evals/results/report.md` — confirm all three suites pass thresholds
-- [ ] Commit `evals/results/report.json` *and* `evals/results/report.md` (the deployed app reads `report.json` from disk — see `Rules.md` §Git/4)
+- [x] Once `evals/run.py` exists, run `python evals/run.py` from the project root
+- [x] Inspect `evals/results/report.md` — confirm all three suites pass thresholds
+- [x] Commit `evals/results/report.json` *and* `evals/results/report.md` (the deployed app reads `report.json` from disk — see `Rules.md` §Git/4)
 
 ---
 
-## 3. Deployment (Phase 9 prerequisites)
+## 3. Deployment (Phase 9 prerequisites — single Vercel project)
 
-### 3.1 Backend host (Render *or* Fly.io)
-- [ ] Pick one and create an account: `https://render.com` *or* `https://fly.io`
-- [ ] Connect the GitHub repo (Render) **or** install `flyctl` and run `fly launch` (Fly)
-- [ ] Once the Dockerfile lands in Phase 9, deploy from `backend/`
-- [ ] Set env var on the backend host: `ANTHROPIC_API_KEY=<the key from §1.1>`
-- [ ] Set env var on the backend host: `ALLOWED_ORIGINS=<your Vercel domain>` (e.g. `https://placementiq.vercel.app`) — comma-separated if you have more than one
-- [ ] Note the live backend URL — you'll need it in §3.2
-- [ ] Verify `https://<backend-url>/healthz` returns `{"status":"ok"}`
-- [ ] Document the cold-start delay (Render free tier sleeps after 15 min — see `EdgeCases.md` §9.1)
+The entire project (frontend SPA + FastAPI backend) ships as one Vercel deployment — see `architecture.md` §8.1.
 
-### 3.2 Frontend host (Vercel)
+### 3.1 Vercel account + project
 - [ ] Create a Vercel account at `https://vercel.com`
 - [ ] **New Project → Import from GitHub** → pick this repo
-- [ ] Set **Root Directory** to `frontend`
-- [ ] Set env var on Vercel: `VITE_API_BASE_URL=<the backend URL from §3.1>`
-- [ ] Trigger a deploy and confirm the home page loads
-- [ ] Walk the full demo flow on the live URL
+- [ ] Leave **Root Directory** as the repo root (do *not* set it to `frontend/`) — Vercel needs to see both `frontend/` and `api/` from the root
+- [ ] Confirm Vercel auto-detects Vite (frontend) and Python (api/) builders from the committed `vercel.json`
 
-### 3.3 End-to-end verification
-- [ ] CORS works (no errors in browser devtools console when loading the live frontend)
-- [ ] Live `/api/evals/results` returns the committed report (not `not_run`)
-- [ ] First-request cold-start latency captured for the README
+### 3.2 Env vars on Vercel
+- [ ] Set `ANTHROPIC_API_KEY=<the key from §1.1>` in **Project Settings → Environment Variables**
+- [ ] *(Optional)* leave `VITE_API_BASE_URL` unset — the frontend defaults to relative `/api/*` paths under same-origin
+- [ ] **No `ALLOWED_ORIGINS` needed** — frontend and backend share an origin in production, so CORS is bypassed (still required for local dev; see `backend/.env.example`)
+
+### 3.3 First deploy + verification
+- [ ] Trigger the first deploy (Vercel does this automatically on import)
+- [ ] Note the live URL (e.g. `https://placementiq.vercel.app`)
+- [ ] Verify `https://<live-url>/api/healthz` returns `{"status":"ok"}`
+- [ ] Verify `https://<live-url>/api/evals/results` returns the committed `report.json` (status `pass`, not `not_run`)
+- [ ] Walk the full demo flow on the live URL (Student dashboard → Counselor flow → Evals page) on both desktop and mobile (360px)
+- [ ] Capture the cold-start latency (~1–2s expected for the first request after idle) for the README troubleshooting section
 
 ---
 
